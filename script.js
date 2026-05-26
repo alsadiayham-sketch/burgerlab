@@ -615,7 +615,11 @@ function openOfferModal(index) {
     var selectableItems = getOfferSelectableItems(deal);
     if (selectableItems.length > 1) {
         var maxPicks = getOfferMaxPicks(deal);
-        selectionsHtml += '<div style="margin-bottom:8px;"><strong>اختر ' + maxPicks + ' أصناف:</strong></div>';
+        selectionsHtml += '<div style="margin-bottom:8px;display:flex;align-items:center;gap:12px;"><strong>اختر ' + maxPicks + ' أصناف:</strong>';
+        if (selectableItems.length <= maxPicks) {
+            selectionsHtml += '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;color:var(--accent);"><input type="checkbox" onchange="selectAllOfferItems(this,' + maxPicks + ')" style="accent-color:var(--accent);"> تحديد الكل</label>';
+        }
+        selectionsHtml += '</div>';
         selectionsHtml += '<div class="offer-selections-grid">';
         var i;
         for (i = 0; i < selectableItems.length; i += 1) {
@@ -678,14 +682,40 @@ function getOfferMaxPicks(deal) {
 function validateOfferSelections(max) {
     var container = document.getElementById('offerModalSelections');
     if (!container) return;
-    var checked = container.querySelectorAll('input[type=checkbox]:checked');
-    var unchecked = container.querySelectorAll('input[type=checkbox]:not(:checked)');
+    var grid = container.querySelector('.offer-selections-grid');
+    if (!grid) return;
+    var checked = grid.querySelectorAll('input[type=checkbox]:checked');
+    var unchecked = grid.querySelectorAll('input[type=checkbox]:not(:checked)');
     var i;
     if (checked.length >= max) {
         for (i = 0; i < unchecked.length; i += 1) unchecked[i].disabled = true;
     } else {
-        var all = container.querySelectorAll('input[type=checkbox]');
+        var all = grid.querySelectorAll('input[type=checkbox]');
         for (i = 0; i < all.length; i += 1) all[i].disabled = false;
+    }
+}
+
+function selectAllOfferItems(masterCheckbox, max) {
+    var container = document.getElementById('offerModalSelections');
+    if (!container) return;
+    var grid = container.querySelector('.offer-selections-grid');
+    if (!grid) return;
+    var all = grid.querySelectorAll('input[type=checkbox]');
+    var i;
+    if (masterCheckbox.checked) {
+        for (i = 0; i < all.length && i < max; i += 1) {
+            all[i].checked = true;
+            all[i].disabled = false;
+        }
+        for (; i < all.length; i += 1) {
+            all[i].checked = false;
+            all[i].disabled = true;
+        }
+    } else {
+        for (i = 0; i < all.length; i += 1) {
+            all[i].checked = false;
+            all[i].disabled = false;
+        }
     }
 }
 
