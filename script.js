@@ -29,6 +29,7 @@ function subscribeToStoreData() {
         setStoreNotice('تعذر الاتصال بفايرستور الآن، تم عرض القائمة الاحتياطية.', true);
         return;
     }
+    trackVisit();
     db.collection('products').orderBy('id').onSnapshot(function (snapshot) {
         var next = [];
         snapshot.forEach(function (docSnap) {
@@ -70,6 +71,20 @@ function setStoreNotice(message, isWarning) {
     notice.style.display = 'block';
     notice.textContent = message;
     notice.style.borderColor = isWarning ? 'rgba(255,140,0,0.32)' : 'rgba(230,57,70,0.26)';
+}
+
+function trackVisit() {
+    if (!window.db) return;
+    var now = new Date();
+    var monthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    var docRef = db.collection('analytics').doc('visits');
+    docRef.get().then(function (docSnap) {
+        var data = docSnap.exists ? docSnap.data() : {};
+        var current = Number(data[monthKey] || 0);
+        var update = {};
+        update[monthKey] = current + 1;
+        return docRef.set(update, { merge: true });
+    }).catch(function () {});
 }
 
 function setupSearchSync() {

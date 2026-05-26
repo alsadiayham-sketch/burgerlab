@@ -5,6 +5,7 @@ var MENU_CATEGORIES = ['برجر لحم', 'برجر دجاج', 'عروض', 'تن
 var products = normalizeProducts(DEFAULT_PRODUCTS);
 var orders = [];
 var siteSettings = normalizeSettings(DEFAULT_SITE_SETTINGS);
+var monthlyVisits = 0;
 var unsubscribers = [];
 var readyFlags = { products: false, orders: false, settings: false };
 
@@ -106,6 +107,7 @@ function ensureSeedIfEmpty() {
 function subscribeToData() {
     clearSubscriptions();
     subscribeToDeals();
+    subscribeToVisits();
     unsubscribers.push(db.collection('products').orderBy('id').onSnapshot(function (snapshot) {
         var list = [];
         snapshot.forEach(function (docSnap) { list.push(normalizeProduct(docSnap.data())); });
@@ -178,8 +180,9 @@ function renderDashboard() {
         statCard('أصناف القائمة', products.length, 'إجمالي الأصناف المعروضة'),
         statCard('إجمالي الطلبات', orders.length, 'كل الطلبات المحفوظة'),
         statCard('طلبات قيد المتابعة', pending, 'جديد + قيد التحضير'),
+        statCard('زيارات هذا الشهر', monthlyVisits, 'عدد مرات فتح الموقع'),
         statCard('طلبات داخل المطعم', dinein, 'بدون عنوان'),
-        statCard('طلبات سفري', takeout, 'تظهر مع + توصيل')
+        statCard('طلبات سفري', takeout, 'غير شامل سعر التوصيل')
     ].join('');
     renderLatestOrders();
     renderTopCategories(categoryCounts, totalRevenue);
@@ -511,6 +514,17 @@ function runSeed(force) {
 // ===================== DEALS MANAGEMENT =====================
 
 var deals = [];
+
+function subscribeToVisits() {
+    if (!window.db) return;
+    unsubscribers.push(db.collection('analytics').doc('visits').onSnapshot(function (docSnap) {
+        var data = docSnap.exists ? docSnap.data() : {};
+        var now = new Date();
+        var monthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        monthlyVisits = Number(data[monthKey] || 0);
+        renderDashboard();
+    }, function () {}));
+}
 
 function subscribeToDeals() {
     if (!window.db) return;

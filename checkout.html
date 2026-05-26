@@ -155,7 +155,7 @@
                 '<h3>نوع الطلب</h3>',
                 '<div class="mode-grid">',
                 '<div class="mode-card ' + (orderMode === 'dinein' ? 'active' : '') + '" onclick="selectOrderMode(\'dinein\')"><strong>داخل المطعم</strong><p>بدون عنوان وبدون أي رسوم إضافية.</p></div>',
-                '<div class="mode-card ' + (orderMode === 'takeout' ? 'active' : '') + '" onclick="selectOrderMode(\'takeout\')"><strong>سفري</strong><p>أدخل العنوان وسيظهر المجموع مع + توصيل.</p></div>',
+                '<div class="mode-card ' + (orderMode === 'takeout' ? 'active' : '') + '" onclick="selectOrderMode(\'takeout\')"><strong>سفري</strong><p>أدخل العنوان، السعر غير شامل التوصيل.</p></div>',
                 '</div></div>',
                 '<div class="checkout-card" style="margin-top:20px;"><h2>طلبك</h2><div class="checkout-list">' + itemsHtml + '</div></div>',
                 '<div class="checkout-card" style="margin-top:20px;">',
@@ -177,7 +177,7 @@
                 '<div class="summary-row total"><span>الإجمالي</span><strong>' + getTotalDisplay() + '</strong></div>',
                 '</div>',
                 '<div class="checkout-note">',
-                orderMode === 'takeout' ? 'رسوم التوصيل غير محتسبة داخل المجموع، وسيظهر الطلب في الفاتورة مع + توصيل.' : 'طلب داخل المطعم بدون أي رسوم إضافية.',
+                orderMode === 'takeout' ? 'السعر غير شامل سعر التوصيل.' : 'طلب داخل المطعم بدون أي رسوم إضافية.',
                 '</div>',
                 '<div style="margin-top:18px;"><button type="button" class="btn-primary wide" id="confirmOrderBtn" onclick="confirmOrder()">تأكيد الطلب</button></div>',
                 '</div>',
@@ -236,7 +236,7 @@
 
         function getTotalDisplay() {
             var subtotal = formatCurrency(getSubtotal());
-            return orderMode === 'takeout' ? subtotal + ' (+ توصيل)' : subtotal;
+            return orderMode === 'takeout' ? subtotal + ' (غير شامل سعر التوصيل)' : subtotal;
         }
 
         function selectOrderMode(mode) {
@@ -314,7 +314,7 @@
             }
             text += 'ـــــــــــــــــــــــــــ\n';
             text += 'المجموع: ' + order.subtotal + ' شيكل';
-            if (order.orderMode === 'takeout') text += ' (+ توصيل)';
+            if (order.orderMode === 'takeout') text += ' (غير شامل سعر التوصيل)';
             text += '\n';
             if (order.notes) text += 'ملاحظات: ' + order.notes + '\n';
             return text;

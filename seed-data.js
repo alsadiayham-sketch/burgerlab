@@ -330,23 +330,6 @@ var SEED_PRODUCTS = [
     "status": "normal"
   },
   {
-    "id": 16,
-    "name": "ميني بوكس",
-    "brand": "",
-    "category": "عروض",
-    "description": "4 ساندويشات ميني، 2 بطاطا، 2 كولا، صوصات.",
-    "sizes": [
-      {
-        "size": "عادي",
-        "unit": "قطعة",
-        "price": 50
-      }
-    ],
-    "discount": 0,
-    "image": "https://images.unsplash.com/photo-1550317138-10000687a72b?w=400&h=400&fit=crop",
-    "status": "special"
-  },
-  {
     "id": 17,
     "name": "سولو ميل",
     "brand": "",
