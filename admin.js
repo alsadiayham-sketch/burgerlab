@@ -1,0 +1,508 @@
+var ADMIN_USER = 'hamoody';
+var ADMIN_PASS = '5555';
+var FALLBACK_IMAGE = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 120%22%3E%3Crect width=%22120%22 height=%22120%22 rx=%2220%22 fill=%22%231a1a1a%22/%3E%3Ctext x=%2260%22 y=%2268%22 text-anchor=%22middle%22 font-size=%2218%22 fill=%22%23e63946%22 font-family=%22Arial%22%3EBurger%3C/text%3E%3C/svg%3E';
+var MENU_CATEGORIES = ['برجر لحم', 'برجر دجاج', 'عروض', 'تندر دجاج', 'أطفال', 'إضافات', 'سلطات', 'مشروبات'];
+var products = normalizeProducts(DEFAULT_PRODUCTS);
+var orders = [];
+var siteSettings = normalizeSettings(DEFAULT_SITE_SETTINGS);
+var unsubscribers = [];
+var readyFlags = { products: false, orders: false, settings: false };
+
+document.addEventListener('DOMContentLoaded', function () {
+    if (sessionStorage.getItem('burgerlab_admin') === 'true') {
+        showAdmin();
+        initializeAdmin();
+    }
+});
+
+function setLoading(loading) {
+    var loader = document.getElementById('adminLoader');
+    if (loader) loader.style.display = loading ? 'block' : 'none';
+}
+
+function setStatus(message, kind) {
+    var node = document.getElementById('adminStatus');
+    if (!node) return;
+    node.textContent = message;
+    node.style.color = '#f5f5f5';
+    if (kind === 'error') node.style.color = '#ff9ca3';
+    if (kind === 'success') node.style.color = '#bbf7d0';
+    if (kind === 'warning') node.style.color = '#ffd5a1';
+}
+
+function showAdmin() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+}
+
+function handleLogin(event) {
+    event.preventDefault();
+    var user = document.getElementById('loginUser').value.trim();
+    var pass = document.getElementById('loginPass').value;
+    if (user === ADMIN_USER && pass === ADMIN_PASS) {
+        sessionStorage.setItem('burgerlab_admin', 'true');
+        showAdmin();
+        initializeAdmin();
+        return;
+    }
+    document.getElementById('loginError').textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+}
+
+function logout() {
+    sessionStorage.removeItem('burgerlab_admin');
+    clearSubscriptions();
+    window.location.reload();
+}
+
+function clearSubscriptions() {
+    var i;
+    for (i = 0; i < unsubscribers.length; i += 1) {
+        if (typeof unsubscribers[i] === 'function') unsubscribers[i]();
+    }
+    unsubscribers = [];
+}
+
+function switchTab(tabId, button) {
+    var tabs = document.querySelectorAll('.tab-content');
+    var buttons = document.querySelectorAll('.tab-btn');
+    var i;
+    for (i = 0; i < tabs.length; i += 1) tabs[i].classList.remove('active');
+    for (i = 0; i < buttons.length; i += 1) buttons[i].classList.remove('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+    if (button) button.classList.add('active');
+}
+
+function initializeAdmin() {
+    setLoading(true);
+    setStatus('جارٍ مزامنة البيانات من فايرستور...', '');
+    populateCategorySelect();
+    renderProductsTable();
+    renderOrdersTable();
+    renderDashboard();
+    loadSettingsForm();
+
+    if (!window.db) {
+        setLoading(false);
+        setStatus('تعذر الاتصال بفايرستور، تعمل اللوحة على البيانات الافتراضية فقط.', 'warning');
+        return;
+    }
+
+    ensureSeedIfEmpty().then(function () {
+        subscribeToData();
+    }).catch(function () {
+        setLoading(false);
+        setStatus('حدث خطأ أثناء تهيئة البيانات.', 'error');
+    });
+}
+
+function ensureSeedIfEmpty() {
+    return db.collection('products').limit(1).get().then(function (snapshot) {
+        if (!snapshot.empty) return true;
+        setStatus('القائمة فارغة، جارٍ تنفيذ Seed Data...', 'warning');
+        return seedFirestoreData(false);
+    });
+}
+
+function subscribeToData() {
+    clearSubscriptions();
+    unsubscribers.push(db.collection('products').orderBy('id').onSnapshot(function (snapshot) {
+        var list = [];
+        snapshot.forEach(function (docSnap) { list.push(normalizeProduct(docSnap.data())); });
+        products = normalizeProducts(list);
+        readyFlags.products = true;
+        populateCategorySelect();
+        renderProductsTable();
+        renderDashboard();
+        checkReady();
+    }, function () {
+        setStatus('تعذر تحميل القائمة.', 'error');
+        setLoading(false);
+    }));
+
+    unsubscribers.push(db.collection('orders').orderBy('date', 'desc').onSnapshot(function (snapshot) {
+        var list = [];
+        snapshot.forEach(function (docSnap) {
+            var data = docSnap.data() || {};
+            data._docId = docSnap.id;
+            list.push(data);
+        });
+        orders = list;
+        readyFlags.orders = true;
+        renderOrdersTable();
+        renderDashboard();
+        checkReady();
+    }, function () {
+        setStatus('تعذر تحميل الطلبات.', 'error');
+        setLoading(false);
+    }));
+
+    unsubscribers.push(db.collection('settings').doc('config').onSnapshot(function (docSnap) {
+        if (docSnap.exists) siteSettings = normalizeSettings(docSnap.data());
+        readyFlags.settings = true;
+        loadSettingsForm();
+        checkReady();
+    }, function () {
+        setStatus('تعذر تحميل الإعدادات.', 'error');
+        setLoading(false);
+    }));
+}
+
+function checkReady() {
+    if (readyFlags.products && readyFlags.orders && readyFlags.settings) {
+        setLoading(false);
+        setStatus('تمت مزامنة البيانات بنجاح.', 'success');
+    }
+}
+
+function statCard(title, value, subtitle) {
+    return '<div class="stat-card"><h4>' + escapeHtml(title) + '</h4><strong>' + escapeHtml(String(value)) + '</strong><span>' + escapeHtml(subtitle) + '</span></div>';
+}
+
+function renderDashboard() {
+    var totalRevenue = 0;
+    var dinein = 0;
+    var takeout = 0;
+    var pending = 0;
+    var i;
+    var categoryCounts = {};
+    for (i = 0; i < orders.length; i += 1) {
+        totalRevenue += Number(orders[i].total || 0) || 0;
+        if (orders[i].orderMode === 'takeout') takeout += 1; else dinein += 1;
+        if (orders[i].status === 'new' || orders[i].status === 'processing') pending += 1;
+    }
+    for (i = 0; i < products.length; i += 1) {
+        categoryCounts[products[i].category] = (categoryCounts[products[i].category] || 0) + 1;
+    }
+    document.getElementById('statsGrid').innerHTML = [
+        statCard('أصناف القائمة', products.length, 'إجمالي الأصناف المعروضة'),
+        statCard('إجمالي الطلبات', orders.length, 'كل الطلبات المحفوظة'),
+        statCard('طلبات قيد المتابعة', pending, 'جديد + قيد التحضير'),
+        statCard('طلبات داخل المطعم', dinein, 'بدون عنوان'),
+        statCard('طلبات سفري', takeout, 'تظهر مع + توصيل')
+    ].join('');
+    renderLatestOrders();
+    renderTopCategories(categoryCounts, totalRevenue);
+}
+
+function renderLatestOrders() {
+    var node = document.getElementById('latestOrders');
+    if (!node) return;
+    if (!orders.length) {
+        node.innerHTML = '<div class="mini-card">لا توجد طلبات حتى الآن.</div>';
+        return;
+    }
+    var html = '<div class="list-stack">';
+    var max = Math.min(5, orders.length);
+    var i;
+    for (i = 0; i < max; i += 1) {
+        html += '<div class="mini-card"><strong>' + escapeHtml(orders[i].id || '-') + '</strong><div>' + escapeHtml(orders[i].customerName || '-') + ' • ' + escapeHtml(formatDateTime(orders[i].date)) + '</div><div>' + escapeHtml(orders[i].orderMode === 'takeout' ? 'سفري' : 'داخل المطعم') + ' • ' + escapeHtml(orders[i].totalDisplay || formatCurrency(orders[i].total || 0)) + '</div></div>';
+    }
+    html += '</div>';
+    node.innerHTML = html;
+}
+
+function renderTopCategories(categoryCounts, totalRevenue) {
+    var node = document.getElementById('topCategories');
+    if (!node) return;
+    var keys = [];
+    var key;
+    for (key in categoryCounts) if (categoryCounts.hasOwnProperty(key)) keys.push(key);
+    keys.sort(function (a, b) { return categoryCounts[b] - categoryCounts[a]; });
+    var html = '<div class="list-stack">';
+    html += '<div class="mini-card"><strong>إجمالي المبيعات</strong><div>' + formatCurrency(totalRevenue) + '</div></div>';
+    if (!keys.length) {
+        html += '<div class="mini-card">لا توجد أصناف مصنفة حالياً.</div>';
+    } else {
+        var i;
+        for (i = 0; i < Math.min(5, keys.length); i += 1) {
+            html += '<div class="mini-card"><strong>' + escapeHtml(keys[i]) + '</strong><div>' + categoryCounts[keys[i]] + ' صنف</div></div>';
+        }
+    }
+    html += '</div>';
+    node.innerHTML = html;
+}
+
+function buildStatusPill(status) {
+    var labels = { normal: 'عادي', bestseller: 'الأكثر طلباً', special: 'مميز', soldout: 'غير متوفر', new: 'جديد', processing: 'قيد التحضير', completed: 'مكتمل', cancelled: 'ملغي' };
+    return '<span class="status-pill ' + escapeHtml(status) + '">' + escapeHtml(labels[status] || status) + '</span>';
+}
+
+function formatSizesAndPrices(product) {
+    var parts = [];
+    var i;
+    for (i = 0; i < product.sizes.length; i += 1) parts.push(escapeHtml(getSizeLabel(product.sizes[i])) + ' - ' + formatCurrency(product.sizes[i].price));
+    return parts.join('<br>');
+}
+
+function renderProductsTable() {
+    var body = document.getElementById('productsTableBody');
+    if (!body) return;
+    if (!products.length) {
+        body.innerHTML = '<tr><td colspan="7">لا توجد أصناف حالياً.</td></tr>';
+        return;
+    }
+    var html = '';
+    var i;
+    for (i = 0; i < products.length; i += 1) {
+        html += '<tr>';
+        html += '<td><img src="' + escapeHtml(products[i].image) + '" alt="' + escapeHtml(products[i].name) + '" onerror="this.src=\'' + FALLBACK_IMAGE + '\'"></td>';
+        html += '<td>' + escapeHtml(products[i].name) + '</td>';
+        html += '<td>' + escapeHtml(products[i].category) + '</td>';
+        html += '<td>' + escapeHtml(products[i].description) + '</td>';
+        html += '<td>' + formatSizesAndPrices(products[i]) + '</td>';
+        html += '<td>' + buildStatusPill(products[i].status || 'normal') + '</td>';
+        html += '<td><div class="row-actions"><button type="button" class="edit-btn" onclick="openProductModal(' + products[i].id + ')">تعديل</button><button type="button" class="delete-btn" onclick="deleteProduct(' + products[i].id + ')">حذف</button></div></td>';
+        html += '</tr>';
+    }
+    body.innerHTML = html;
+}
+
+function populateCategorySelect() {
+    var select = document.getElementById('productCategory');
+    if (!select) return;
+    var html = '';
+    var i;
+    for (i = 0; i < MENU_CATEGORIES.length; i += 1) html += '<option value="' + escapeHtml(MENU_CATEGORIES[i]) + '">' + escapeHtml(MENU_CATEGORIES[i]) + '</option>';
+    select.innerHTML = html;
+}
+
+function createEmptySize() { return { size: 'عادي', unit: 'قطعة', price: '' }; }
+
+function addSizeRow(sizeData) {
+    var container = document.getElementById('sizesContainer');
+    var row = document.createElement('div');
+    var item = sizeData || createEmptySize();
+    row.className = 'size-row';
+    row.innerHTML = [
+        '<div><label>الاسم</label><input type="text" class="size-name" value="' + escapeHtml(item.size) + '" placeholder="ساندويش / وجبة / عادي"></div>',
+        '<div><label>الوحدة</label><input type="text" class="size-unit" value="' + escapeHtml(item.unit || 'قطعة') + '" placeholder="قطعة"></div>',
+        '<div><label>السعر</label><input type="number" min="0" class="size-price" value="' + escapeHtml(String(item.price)) + '" placeholder="₪"></div>',
+        '<button type="button" class="remove-size-btn" onclick="removeSizeRow(this)">حذف</button>'
+    ].join('');
+    container.appendChild(row);
+}
+
+function removeSizeRow(button) {
+    var container = document.getElementById('sizesContainer');
+    if (container.children.length <= 1) return;
+    container.removeChild(button.parentNode);
+}
+
+function openProductModal(productId) {
+    var product = productId ? findProductById(products, productId) : null;
+    document.getElementById('productModalTitle').textContent = product ? 'تعديل الصنف' : 'إضافة صنف';
+    document.getElementById('productId').value = product ? product.id : '';
+    document.getElementById('productName').value = product ? product.name : '';
+    document.getElementById('productDescription').value = product ? product.description : '';
+    document.getElementById('productImage').value = product ? product.image : '';
+    document.getElementById('productStatus').value = product ? product.status : 'normal';
+    populateCategorySelect();
+    document.getElementById('productCategory').value = product ? product.category : MENU_CATEGORIES[0];
+    var container = document.getElementById('sizesContainer');
+    container.innerHTML = '';
+    var sizes = product && product.sizes && product.sizes.length ? product.sizes : [createEmptySize()];
+    var i;
+    for (i = 0; i < sizes.length; i += 1) addSizeRow(sizes[i]);
+    document.getElementById('productModal').style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    var node = document.getElementById(modalId);
+    if (node) node.style.display = 'none';
+}
+
+function collectSizes() {
+    var rows = document.querySelectorAll('#sizesContainer .size-row');
+    var sizes = [];
+    var i;
+    for (i = 0; i < rows.length; i += 1) {
+        var name = rows[i].querySelector('.size-name').value.trim();
+        var unit = rows[i].querySelector('.size-unit').value.trim() || 'قطعة';
+        var price = parseFloat(rows[i].querySelector('.size-price').value || '0');
+        if (!name || !(price >= 0)) continue;
+        sizes.push({ size: name, unit: unit, price: price });
+    }
+    return sizes;
+}
+
+function saveProduct(event) {
+    event.preventDefault();
+    var sizes = collectSizes();
+    if (!sizes.length) {
+        alert('أضف حجماً واحداً على الأقل مع السعر.');
+        return;
+    }
+    var currentId = parseInt(document.getElementById('productId').value, 10);
+    var nextId = currentId;
+    if (!nextId) {
+        nextId = 1;
+        var i;
+        for (i = 0; i < products.length; i += 1) nextId = Math.max(nextId, Number(products[i].id) + 1);
+    }
+    var productData = normalizeProduct({
+        id: nextId,
+        name: document.getElementById('productName').value.trim(),
+        category: document.getElementById('productCategory').value,
+        description: document.getElementById('productDescription').value.trim(),
+        sizes: sizes,
+        image: document.getElementById('productImage').value.trim() || FALLBACK_IMAGE,
+        status: document.getElementById('productStatus').value,
+        brand: ''
+    });
+    if (!window.db) {
+        alert('فايرستور غير متاح حالياً.');
+        return;
+    }
+    setLoading(true);
+    db.collection('products').doc(String(productData.id)).set(productData).then(function () {
+        setLoading(false);
+        closeModal('productModal');
+        setStatus('تم حفظ الصنف بنجاح.', 'success');
+    }).catch(function () {
+        setLoading(false);
+        setStatus('تعذر حفظ الصنف.', 'error');
+    });
+}
+
+function deleteProduct(productId) {
+    if (!confirm('هل تريد حذف هذا الصنف؟')) return;
+    if (!window.db) {
+        alert('فايرستور غير متاح حالياً.');
+        return;
+    }
+    setLoading(true);
+    db.collection('products').doc(String(productId)).delete().then(function () {
+        setLoading(false);
+        setStatus('تم حذف الصنف.', 'success');
+    }).catch(function () {
+        setLoading(false);
+        setStatus('تعذر حذف الصنف.', 'error');
+    });
+}
+
+function renderOrdersTable() {
+    var body = document.getElementById('ordersTableBody');
+    if (!body) return;
+    var search = (document.getElementById('orderSearchInput') || {}).value || '';
+    var statusFilter = (document.getElementById('orderStatusFilter') || {}).value || 'all';
+    search = search.toLowerCase();
+    var filtered = [];
+    var i;
+    for (i = 0; i < orders.length; i += 1) {
+        var haystack = String((orders[i].customerName || '') + ' ' + (orders[i].customerPhone || '')).toLowerCase();
+        if (statusFilter !== 'all' && orders[i].status !== statusFilter) continue;
+        if (search && haystack.indexOf(search) < 0) continue;
+        filtered.push(orders[i]);
+    }
+    if (!filtered.length) {
+        body.innerHTML = '<tr><td colspan="7">لا توجد طلبات مطابقة.</td></tr>';
+        return;
+    }
+    var html = '';
+    for (i = 0; i < filtered.length; i += 1) {
+        html += '<tr onclick="toggleOrderDetails(\'' + escapeHtml(filtered[i].id) + '\')">';
+        html += '<td>' + escapeHtml(filtered[i].id || '-') + '</td>';
+        html += '<td>' + escapeHtml(formatDateTime(filtered[i].date)) + '</td>';
+        html += '<td>' + escapeHtml(filtered[i].customerName || '-') + '</td>';
+        html += '<td>' + escapeHtml(filtered[i].customerPhone || '-') + '</td>';
+        html += '<td>' + escapeHtml(filtered[i].orderMode === 'takeout' ? 'سفري' : 'داخل المطعم') + '</td>';
+        html += '<td>' + escapeHtml(filtered[i].totalDisplay || formatCurrency(filtered[i].total || 0)) + '</td>';
+        html += '<td>' + buildStatusSelect(filtered[i]) + '</td>';
+        html += '</tr>';
+        html += '<tr class="order-details-row" id="order-details-' + escapeHtml(filtered[i].id) + '" style="display:none;"><td colspan="7">' + renderOrderDetails(filtered[i]) + '</td></tr>';
+    }
+    body.innerHTML = html;
+}
+
+function buildStatusSelect(order) {
+    var statuses = ['new', 'processing', 'completed', 'cancelled'];
+    var html = '<select class="order-status-select" onclick="event.stopPropagation()" onchange="updateOrderStatus(\'' + escapeHtml(order.id) + '\', this.value)">';
+    var i;
+    for (i = 0; i < statuses.length; i += 1) html += '<option value="' + statuses[i] + '" ' + (order.status === statuses[i] ? 'selected' : '') + '>' + ({ new: 'جديد', processing: 'قيد التحضير', completed: 'مكتمل', cancelled: 'ملغي' }[statuses[i]]) + '</option>';
+    html += '</select>';
+    return html;
+}
+
+function renderOrderDetails(order) {
+    var itemsHtml = '';
+    var i;
+    for (i = 0; i < (order.items || []).length; i += 1) {
+        itemsHtml += '<div class="order-detail-item"><strong>' + escapeHtml(order.items[i].name) + '</strong><div>' + escapeHtml(order.items[i].sizeLabel) + ' × ' + order.items[i].qty + '</div><div>' + formatCurrency(order.items[i].lineTotal) + '</div></div>';
+    }
+    return [
+        '<div class="order-details">',
+        '<div class="order-detail-items">' + itemsHtml + '</div>',
+        '<div class="order-meta">',
+        '<div class="mini-card"><strong>بيانات العميل</strong><div>الاسم: ' + escapeHtml(order.customerName || '-') + '</div><div>الهاتف: ' + escapeHtml(order.customerPhone || '-') + '</div><div>العنوان: ' + escapeHtml(order.address || '-') + '</div></div>',
+        '<div class="mini-card"><strong>ملخص الطلب</strong><div>النوع: ' + escapeHtml(order.orderMode === 'takeout' ? 'سفري' : 'داخل المطعم') + '</div><div>المجموع: ' + escapeHtml(order.totalDisplay || formatCurrency(order.total || 0)) + '</div><div>الملاحظات: ' + escapeHtml(order.notes || '-') + '</div></div>',
+        '</div></div>'
+    ].join('');
+}
+
+function toggleOrderDetails(orderId) {
+    var row = document.getElementById('order-details-' + orderId);
+    if (!row) return;
+    row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+function updateOrderStatus(orderId, nextStatus) {
+    if (!window.db) {
+        alert('فايرستور غير متاح حالياً.');
+        return;
+    }
+    db.collection('orders').doc(String(orderId)).update({ status: nextStatus }).then(function () {
+        setStatus('تم تحديث حالة الطلب.', 'success');
+    }).catch(function () {
+        setStatus('تعذر تحديث حالة الطلب.', 'error');
+    });
+}
+
+function loadSettingsForm() {
+    document.getElementById('settingWhatsapp').value = siteSettings.whatsappNumber || '';
+    document.getElementById('settingHero').value = siteSettings.heroSubtitle || '';
+    document.getElementById('settingInstagram').value = siteSettings.instagramLink || '';
+    document.getElementById('settingAbout').value = siteSettings.aboutText || '';
+}
+
+function saveSettings(event) {
+    event.preventDefault();
+    var next = normalizeSettings({
+        whatsappNumber: document.getElementById('settingWhatsapp').value,
+        heroSubtitle: document.getElementById('settingHero').value,
+        instagramLink: document.getElementById('settingInstagram').value,
+        aboutText: document.getElementById('settingAbout').value
+    });
+    if (!window.db) {
+        alert('فايرستور غير متاح حالياً.');
+        return;
+    }
+    setLoading(true);
+    db.collection('settings').doc('config').set(next, { merge: true }).then(function () {
+        siteSettings = next;
+        setLoading(false);
+        setStatus('تم حفظ الإعدادات.', 'success');
+    }).catch(function () {
+        setLoading(false);
+        setStatus('تعذر حفظ الإعدادات.', 'error');
+    });
+}
+
+function runSeed(force) {
+    if (!window.db) {
+        alert('فايرستور غير متاح حالياً.');
+        return;
+    }
+    setLoading(true);
+    setStatus('جارٍ تنفيذ Seed Data...', 'warning');
+    seedFirestoreData(force).then(function (result) {
+        setLoading(false);
+        if (result && result.seeded) {
+            setStatus('تمت تعبئة البيانات بنجاح (' + result.products + ' صنف).', 'success');
+        } else {
+            setStatus('لم يتم تنفيذ Seed لأن البيانات موجودة مسبقاً.', 'warning');
+        }
+    }).catch(function (error) {
+        setLoading(false);
+        setStatus((error && error.message) || 'تعذر تنفيذ Seed Data.', 'error');
+    });
+}

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burger Lab | برجر لاب</title>
+    <meta name="description" content="Burger Lab - برجر لاب | منيو برجر كامل للطلب داخل المطعم أو سفري">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="logo.png">
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="container nav-container">
+            <a href="#home" class="logo brand-mark">
+                <img src="logo.png" alt="Burger Lab" class="logo-img">
+                <div>
+                    <strong class="logo-title">Burger Lab</strong>
+                    <span class="logo-subtitle">برجر لاب</span>
+                </div>
+            </a>
+            <div class="nav-tools">
+                <div class="nav-search">
+                    <input type="text" id="navSearchInput" placeholder="ابحث في القائمة...">
+                </div>
+                <ul class="nav-links">
+                    <li><a href="#menu">القائمة</a></li>
+                    <li><a href="#about">من نحن</a></li>
+                    <li><a href="#contact">تواصل معنا</a></li>
+                </ul>
+                <button class="cart-icon" id="cartIcon" type="button" onclick="toggleCart()">
+                    <span>🛒</span>
+                    <span class="cart-badge" id="cartBadge" style="display:none;">0</span>
+                </button>
+                <button class="mobile-menu-btn" type="button" onclick="toggleMobileMenu()">☰</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#menu" onclick="toggleMobileMenu()">القائمة</a>
+        <a href="#about" onclick="toggleMobileMenu()">من نحن</a>
+        <a href="#contact" onclick="toggleMobileMenu()">تواصل معنا</a>
+    </div>
+
+    <header class="hero" id="home">
+        <div class="hero-overlay"></div>
+        <div class="container hero-content">
+            <div class="hero-badge">Burger Lab • Fresh Smash Taste</div>
+            <h1>أطعم برجر بالبلد</h1>
+            <p class="hero-subtitle" id="heroSubtitle">أطعم برجر بالبلد</p>
+            <div class="hero-actions">
+                <a href="#menu" class="btn-primary">شوف القائمة</a>
+                <a href="#contact" class="btn-secondary">تواصل معنا</a>
+            </div>
+            <div class="hero-highlights">
+                <div class="highlight-chip">🔥 لحم طازج يومياً</div>
+                <div class="highlight-chip">🍟 وجبات كاملة</div>
+                <div class="highlight-chip">🥤 سفري أو داخل المطعم</div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="menu-section-shell" id="menu">
+            <div class="container">
+                <div class="section-head centered">
+                    <span class="section-kicker">Menu</span>
+                    <h2>قائمة برجر لاب</h2>
+                    <p>اختر من البرجر، الوجبات، الإضافات، والمشروبات. الوجبة تعني ساندويش + بطاطا + مشروب.</p>
+                </div>
+                <div class="menu-toolbar">
+                    <div class="menu-search">
+                        <input type="text" id="menuSearchInput" placeholder="دور على البرجر أو الإضافة اللي بدك إياها...">
+                    </div>
+                    <div class="order-note">السفري يظهر في الفاتورة مع <strong>+ توصيل</strong></div>
+                </div>
+                <p id="storeNotice" class="store-notice" style="display:none;"></p>
+                <div class="category-tabs">
+                    <button type="button" class="menu-tab active" data-tab="burgers" onclick="setActiveTab('burgers', this)">البرجر</button>
+                    <button type="button" class="menu-tab" data-tab="meals" onclick="setActiveTab('meals', this)">الوجبات</button>
+                    <button type="button" class="menu-tab" data-tab="extras" onclick="setActiveTab('extras', this)">الإضافات والسلطات</button>
+                    <button type="button" class="menu-tab" data-tab="drinks" onclick="setActiveTab('drinks', this)">المشروبات</button>
+                </div>
+                <div class="menu-sections" id="menuSections"></div>
+            </div>
+        </section>
+
+        <section class="about-section" id="about">
+            <div class="container about-grid">
+                <div class="about-copy">
+                    <span class="section-kicker">About Us</span>
+                    <h2>عن برجر لاب</h2>
+                    <p id="aboutText">برجر لاب يقدّم برجر لحم ودجاج بطعم قوي ومكونات طازجة يومياً.</p>
+                </div>
+                <div class="about-cards">
+                    <article class="info-card">
+                        <span class="info-icon">🍔</span>
+                        <h3>منيو مركز وواضح</h3>
+                        <p>منيو برجر فعلي مقسّم حسب النوع مع أسعار الساندويش والوجبة.</p>
+                    </article>
+                    <article class="info-card">
+                        <span class="info-icon">⚡</span>
+                        <h3>طلب سريع</h3>
+                        <p>أضف الطلب للسلة، حدّد داخل المطعم أو سفري، وأرسل الطلب مباشرة.</p>
+                    </article>
+                    <article class="info-card">
+                        <span class="info-icon">📍</span>
+                        <h3>مرونة بالاستلام</h3>
+                        <p>ممكن داخل المطعم أو سفري، ورسوم التوصيل تُحدد لاحقاً خارج المجموع.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="contact-section" id="contact">
+            <div class="container">
+                <div class="section-head centered">
+                    <span class="section-kicker">Contact</span>
+                    <h2>تواصل معنا</h2>
+                    <p>للطلبات والاستفسارات تابعنا أو راسلنا مباشرة.</p>
+                </div>
+                <div class="contact-actions">
+                    <a class="social-btn whatsapp" id="whatsappLink" href="https://wa.me/972569236758" target="_blank" rel="noreferrer">واتساب</a>
+                    <a class="social-btn instagram" id="instagramLink" href="https://www.instagram.com/burger._.lab/" target="_blank" rel="noreferrer">Instagram</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="pdpModal" style="display:none;" onclick="closePDP(event)">
+        <div class="pdp-modal" onclick="event.stopPropagation()">
+            <button class="modal-close" type="button" onclick="closePDP()">✕</button>
+            <div class="pdp-layout">
+                <div class="pdp-media" id="pdpImage"></div>
+                <div class="pdp-content">
+                    <span class="pdp-category" id="pdpCategory"></span>
+                    <h3 id="pdpName"></h3>
+                    <p id="pdpDescription"></p>
+                    <div class="pdp-size-shell" id="pdpSizeSection" style="display:none;">
+                        <label>اختر النوع</label>
+                        <div class="pdp-size-options" id="pdpSizes"></div>
+                    </div>
+                    <div class="pdp-price" id="pdpPrice"></div>
+                    <div class="pdp-size-note" id="pdpSizeHint"></div>
+                    <div class="qty-row">
+                        <span>الكمية</span>
+                        <div class="qty-selector">
+                            <button type="button" onclick="changePDPQty(-1)">−</button>
+                            <span id="pdpQty">1</span>
+                            <button type="button" onclick="changePDPQty(1)">+</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-primary wide" id="pdpAddBtn" onclick="addFromPDP()">أضف للسلة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+    <aside class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <div>
+                <h3>سلة الطلب</h3>
+                <p>راجع طلبك قبل المتابعة</p>
+            </div>
+            <button class="modal-close" type="button" onclick="toggleCart()">✕</button>
+        </div>
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-footer" id="cartFooter" style="display:none;">
+            <div class="cart-total-row"><span>المجموع</span><strong id="cartTotal">₪0</strong></div>
+            <a href="checkout.html" class="btn-primary wide" id="checkoutBtn">إكمال الطلب</a>
+            <button type="button" class="btn-ghost wide" onclick="clearCart()">تفريغ السلة</button>
+        </div>
+    </aside>
+
+    <footer class="footer">
+        <div class="container footer-row">
+            <p>© 2026 Burger Lab | برجر لاب</p>
+            <a href="https://www.instagram.com/burger._.lab/" target="_blank" rel="noreferrer">تابعنا على Instagram</a>
+        </div>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

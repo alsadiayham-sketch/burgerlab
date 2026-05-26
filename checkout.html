@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burger Lab | إكمال الطلب</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .checkout-page { min-height: 100vh; padding: 110px 0 70px; }
+        .checkout-shell { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 24px; }
+        .checkout-card {
+            background: linear-gradient(180deg, rgba(45,45,45,0.96), rgba(29,29,29,0.96));
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+        .checkout-card h2, .checkout-card h3 { margin-bottom: 16px; }
+        .checkout-card p { color: var(--text-light); }
+        .checkout-list { display: grid; gap: 12px; }
+        .checkout-item { display: grid; grid-template-columns: 76px 1fr auto; gap: 12px; align-items: center; padding: 12px; border-radius: 18px; background: rgba(255,255,255,0.04); }
+        .checkout-item img { width: 76px; height: 76px; object-fit: cover; border-radius: 16px; }
+        .checkout-item small, .checkout-item span { color: var(--text-light); display: block; }
+        .checkout-item-price { color: var(--accent); font-weight: 900; }
+        .checkout-item-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+        .mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .mode-card { padding: 18px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: var(--transition); }
+        .mode-card.active { border-color: rgba(255,140,0,0.4); background: rgba(255,140,0,0.12); }
+        .mode-card strong { display: block; margin-bottom: 4px; }
+        .field-grid { display: grid; gap: 14px; margin-top: 18px; }
+        textarea { min-height: 110px; resize: vertical; }
+        .summary-rows { display: grid; gap: 10px; }
+        .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .summary-row.total { border-bottom: none; font-size: 1.2rem; font-weight: 900; color: var(--accent); }
+        .checkout-note { margin-top: 14px; padding: 14px 16px; border-radius: 16px; background: rgba(255,140,0,0.12); color: #ffd5a6; border: 1px solid rgba(255,140,0,0.24); }
+        .back-link { display: inline-flex; margin-bottom: 18px; color: var(--text-light); }
+        .empty-checkout { text-align: center; padding: 60px 24px; }
+        .empty-checkout h2 { margin-bottom: 10px; }
+        .checkout-status { margin-bottom: 16px; color: var(--text-light); }
+        @media (max-width: 900px) { .checkout-shell { grid-template-columns: 1fr; } }
+        @media (max-width: 600px) { .mode-grid { grid-template-columns: 1fr; } .checkout-item { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo brand-mark">
+                <img src="logo.png" alt="Burger Lab" class="logo-img">
+                <div>
+                    <strong class="logo-title">Burger Lab</strong>
+                    <span class="logo-subtitle">برجر لاب</span>
+                </div>
+            </a>
+            <a class="btn-secondary" href="index.html">الرجوع للقائمة</a>
+        </div>
+    </nav>
+
+    <div class="checkout-page">
+        <div class="container">
+            <a href="index.html" class="back-link">← العودة للقائمة</a>
+            <p class="checkout-status" id="checkoutStatus">جارٍ تجهيز الطلب...</p>
+            <div id="checkoutContent"></div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="data.js"></script>
+    <script>
+        var FALLBACK_IMAGE = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 120%22%3E%3Crect width=%22120%22 height=%22120%22 rx=%2220%22 fill=%22%231a1a1a%22/%3E%3Ctext x=%2260%22 y=%2268%22 text-anchor=%22middle%22 font-size=%2218%22 fill=%22%23e63946%22 font-family=%22Arial%22%3EBurger%3C/text%3E%3C/svg%3E';
+        var products = normalizeProducts(DEFAULT_PRODUCTS);
+        var siteSettings = normalizeSettings(DEFAULT_SITE_SETTINGS);
+        var discounts = normalizeDiscounts(DEFAULT_DISCOUNTS);
+        var cart = normalizeCartItems(loadStoredCart(), products);
+        var orderMode = localStorage.getItem('burgerlab_order_mode') || 'dinein';
+
+        function loadStoredCart() {
+            try { return JSON.parse(localStorage.getItem('burgerlab_cart') || '[]'); }
+            catch (error) { return []; }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            renderCheckout();
+            loadRemoteData();
+        });
+
+        function loadRemoteData() {
+            if (!window.db) {
+                setStatus('تعذر الاتصال بفايرستور حالياً، يمكنك إكمال الطلب بالبيانات الحالية.');
+                return;
+            }
+            Promise.all([
+                db.collection('products').get(),
+                db.collection('settings').doc('config').get(),
+                db.collection('discounts').get()
+            ]).then(function (responses) {
+                var productList = [];
+                responses[0].forEach(function (docSnap) { productList.push(normalizeProduct(docSnap.data())); });
+                if (productList.length) products = normalizeProducts(productList);
+                if (responses[1].exists) siteSettings = normalizeSettings(responses[1].data());
+                var discountList = [];
+                responses[2].forEach(function (docSnap) { discountList.push(normalizeDiscount(docSnap.data())); });
+                discounts = normalizeDiscounts(discountList);
+                cart = normalizeCartItems(loadStoredCart(), products);
+                renderCheckout();
+                setStatus('');
+            }).catch(function () {
+                setStatus('تعذر تحديث البيانات من فايرستور، تم استخدام البيانات الاحتياطية.');
+            });
+        }
+
+        function setStatus(message) {
+            var status = document.getElementById('checkoutStatus');
+            if (!status) return;
+            status.textContent = message;
+            status.style.display = message ? 'block' : 'none';
+        }
+
+        function saveCart() {
+            localStorage.setItem('burgerlab_cart', JSON.stringify(normalizeCartItems(cart, products)));
+        }
+
+        function renderCheckout() {
+            var container = document.getElementById('checkoutContent');
+            if (!container) return;
+            if (!cart.length) {
+                container.innerHTML = '<div class="checkout-card empty-checkout"><h2>سلة الطلب فارغة</h2><p>ارجع للقائمة وأضف الأصناف التي تريدها أولاً.</p><div style="margin-top:18px;"><a href="index.html" class="btn-primary">الرجوع للقائمة</a></div></div>';
+                return;
+            }
+            var itemsHtml = '';
+            var i;
+            for (i = 0; i < cart.length; i += 1) {
+                var product = findProductById(products, cart[i].id);
+                if (!product) continue;
+                var sizeData = getSizeData(product, cart[i].sizeIdx);
+                var priceData = getFinalPrice(product, cart[i].sizeIdx, discounts);
+                var lineTotal = priceData.final * cart[i].qty;
+                itemsHtml += '<div class="checkout-item">';
+                itemsHtml += '<img src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.name) + '" onerror="this.src=\'' + FALLBACK_IMAGE + '\'">';
+                itemsHtml += '<div><strong>' + escapeHtml(product.name) + '</strong><small>' + escapeHtml(getSizeLabel(sizeData)) + ' • ' + escapeHtml(getSizeHint(sizeData)) + '</small><span>' + escapeHtml(product.description) + '</span></div>';
+                itemsHtml += '<div class="checkout-item-actions">';
+                itemsHtml += '<div class="qty-selector"><button type="button" onclick="changeQty(' + cart[i].id + ', ' + cart[i].sizeIdx + ', -1)">−</button><span>' + cart[i].qty + '</span><button type="button" onclick="changeQty(' + cart[i].id + ', ' + cart[i].sizeIdx + ', 1)">+</button></div>';
+                itemsHtml += '<div class="checkout-item-price">' + formatCurrency(lineTotal) + '</div>';
+                itemsHtml += '<button type="button" class="btn-ghost" onclick="removeItem(' + cart[i].id + ', ' + cart[i].sizeIdx + ')">حذف</button>';
+                itemsHtml += '</div></div>';
+            }
+            container.innerHTML = [
+                '<div class="checkout-shell">',
+                '<div>',
+                '<div class="checkout-card"><h2>طلبك</h2><div class="checkout-list">' + itemsHtml + '</div></div>',
+                '<div class="checkout-card" style="margin-top:20px;">',
+                '<h3>نوع الطلب</h3>',
+                '<div class="mode-grid">',
+                '<div class="mode-card ' + (orderMode === 'dinein' ? 'active' : '') + '" onclick="selectOrderMode(\'dinein\')"><strong>داخل المطعم</strong><p>بدون عنوان وبدون أي رسوم إضافية.</p></div>',
+                '<div class="mode-card ' + (orderMode === 'takeout' ? 'active' : '') + '" onclick="selectOrderMode(\'takeout\')"><strong>سفري</strong><p>أدخل العنوان وسيظهر المجموع مع + توصيل.</p></div>',
+                '</div>',
+                '<div class="field-grid">',
+                '<div><label>الاسم</label><input type="text" id="custName" placeholder="اكتب اسمك"></div>',
+                '<div><label>رقم الهاتف</label><input type="tel" id="custPhone" placeholder="05xxxxxxxx" inputmode="numeric"></div>',
+                '<div id="addressField" style="' + (orderMode === 'takeout' ? '' : 'display:none;') + '"><label>العنوان</label><textarea id="custAddress" placeholder="المدينة، الحي، الشارع، وأي تفاصيل إضافية"></textarea></div>',
+                '<div><label>ملاحظات إضافية</label><textarea id="custNotes" placeholder="مثلاً: بدون بصل، صوص إضافي، وقت الوصول..."></textarea></div>',
+                '</div></div>',
+                '</div>',
+                '<div>',
+                '<div class="checkout-card">',
+                '<h3>ملخص الطلب</h3>',
+                '<div class="summary-rows">',
+                '<div class="summary-row"><span>عدد القطع</span><strong>' + getItemCount() + '</strong></div>',
+                '<div class="summary-row"><span>المجموع الفرعي</span><strong>' + formatCurrency(getSubtotal()) + '</strong></div>',
+                '<div class="summary-row"><span>نوع الطلب</span><strong>' + (orderMode === 'dinein' ? 'داخل المطعم' : 'سفري') + '</strong></div>',
+                '<div class="summary-row total"><span>الإجمالي</span><strong>' + getTotalDisplay() + '</strong></div>',
+                '</div>',
+                '<div class="checkout-note">',
+                orderMode === 'takeout' ? 'رسوم التوصيل غير محتسبة داخل المجموع، وسيظهر الطلب في الفاتورة مع + توصيل.' : 'طلب داخل المطعم بدون أي رسوم إضافية.',
+                '</div>',
+                '<div style="margin-top:18px;"><button type="button" class="btn-primary wide" id="confirmOrderBtn" onclick="confirmOrder()">تأكيد الطلب</button></div>',
+                '</div>',
+                '</div>',
+                '</div>'
+            ].join('');
+            restoreFields();
+        }
+
+        function changeQty(productId, sizeIdx, delta) {
+            rememberFields();
+            var i;
+            for (i = 0; i < cart.length; i += 1) {
+                if (Number(cart[i].id) === Number(productId) && Number(cart[i].sizeIdx) === Number(sizeIdx)) {
+                    cart[i].qty += delta;
+                    if (cart[i].qty <= 0) {
+                        removeItem(productId, sizeIdx);
+                        return;
+                    }
+                    break;
+                }
+            }
+            saveCart();
+            renderCheckout();
+        }
+
+        function removeItem(productId, sizeIdx) {
+            rememberFields();
+            var next = [];
+            var i;
+            for (i = 0; i < cart.length; i += 1) {
+                if (!(Number(cart[i].id) === Number(productId) && Number(cart[i].sizeIdx) === Number(sizeIdx))) next.push(cart[i]);
+            }
+            cart = next;
+            saveCart();
+            renderCheckout();
+        }
+
+        function getSubtotal() {
+            var total = 0;
+            var i;
+            for (i = 0; i < cart.length; i += 1) {
+                var product = findProductById(products, cart[i].id);
+                if (!product) continue;
+                total += getFinalPrice(product, cart[i].sizeIdx, discounts).final * cart[i].qty;
+            }
+            return total;
+        }
+
+        function getItemCount() {
+            var count = 0;
+            var i;
+            for (i = 0; i < cart.length; i += 1) count += Number(cart[i].qty) || 0;
+            return count + ' قطعة';
+        }
+
+        function getTotalDisplay() {
+            var subtotal = formatCurrency(getSubtotal());
+            return orderMode === 'takeout' ? subtotal + ' (+ توصيل)' : subtotal;
+        }
+
+        function selectOrderMode(mode) {
+            rememberFields();
+            orderMode = mode;
+            localStorage.setItem('burgerlab_order_mode', mode);
+            renderCheckout();
+        }
+
+        function rememberFields() {
+            window.__checkoutFormState = {
+                name: (document.getElementById('custName') || {}).value || '',
+                phone: (document.getElementById('custPhone') || {}).value || '',
+                address: (document.getElementById('custAddress') || {}).value || '',
+                notes: (document.getElementById('custNotes') || {}).value || ''
+            };
+        }
+
+        function restoreFields() {
+            var data = window.__checkoutFormState || {};
+            if (document.getElementById('custName')) document.getElementById('custName').value = data.name || '';
+            if (document.getElementById('custPhone')) document.getElementById('custPhone').value = data.phone || '';
+            if (document.getElementById('custAddress')) document.getElementById('custAddress').value = data.address || '';
+            if (document.getElementById('custNotes')) document.getElementById('custNotes').value = data.notes || '';
+        }
+
+        function buildOrder() {
+            var items = [];
+            var i;
+            for (i = 0; i < cart.length; i += 1) {
+                var product = findProductById(products, cart[i].id);
+                if (!product) continue;
+                var sizeData = getSizeData(product, cart[i].sizeIdx);
+                var pricing = getFinalPrice(product, cart[i].sizeIdx, discounts);
+                items.push({
+                    productId: product.id,
+                    name: product.name,
+                    category: product.category,
+                    sizeIdx: cart[i].sizeIdx,
+                    sizeLabel: getSizeLabel(sizeData),
+                    qty: cart[i].qty,
+                    price: pricing.final,
+                    lineTotal: pricing.final * cart[i].qty
+                });
+            }
+            return {
+                id: makeOrderId(),
+                items: items,
+                customerName: document.getElementById('custName').value.trim(),
+                customerPhone: document.getElementById('custPhone').value.trim(),
+                address: orderMode === 'takeout' ? document.getElementById('custAddress').value.trim() : '',
+                notes: document.getElementById('custNotes').value.trim(),
+                orderMode: orderMode,
+                subtotal: getSubtotal(),
+                total: getSubtotal(),
+                totalDisplay: getTotalDisplay(),
+                date: new Date().toISOString(),
+                status: 'new'
+            };
+        }
+
+        function buildWhatsAppMessage(order) {
+            var text = 'مرحبا، لدي طلب جديد من موقع Burger Lab (' + order.id + '):\n';
+            text += 'ـــــــــــــــــــــــــــ\n';
+            text += 'الاسم: ' + order.customerName + '\n';
+            text += 'الهاتف: ' + order.customerPhone + '\n';
+            text += 'نوع الطلب: ' + (order.orderMode === 'dinein' ? 'داخل المطعم' : 'سفري') + '\n';
+            if (order.orderMode === 'takeout') text += 'العنوان: ' + order.address + '\n';
+            text += 'ـــــــــــــــــــــــــــ\n';
+            var i;
+            for (i = 0; i < order.items.length; i += 1) {
+                text += (i + 1) + '. ' + order.items[i].name + ' - ' + order.items[i].sizeLabel + ' × ' + order.items[i].qty + ' = ' + order.items[i].lineTotal + ' شيكل\n';
+            }
+            text += 'ـــــــــــــــــــــــــــ\n';
+            text += 'المجموع: ' + order.subtotal + ' شيكل';
+            if (order.orderMode === 'takeout') text += ' (+ توصيل)';
+            text += '\n';
+            if (order.notes) text += 'ملاحظات: ' + order.notes + '\n';
+            return text;
+        }
+
+        function confirmOrder() {
+            var name = document.getElementById('custName').value.trim();
+            var phone = document.getElementById('custPhone').value.trim();
+            var addressNode = document.getElementById('custAddress');
+            var address = addressNode ? addressNode.value.trim() : '';
+            if (!name || !phone) {
+                alert('الرجاء إدخال الاسم ورقم الهاتف.');
+                return;
+            }
+            if (phone.length < 9) {
+                alert('الرجاء إدخال رقم هاتف صحيح.');
+                return;
+            }
+            if (orderMode === 'takeout' && !address) {
+                alert('الرجاء إدخال عنوان الطلب السفري.');
+                return;
+            }
+
+            var button = document.getElementById('confirmOrderBtn');
+            var originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'جارٍ حفظ الطلب...';
+
+            var order = buildOrder();
+            order.whatsappUrl = buildWhatsAppUrl(siteSettings.whatsappNumber, buildWhatsAppMessage(order));
+
+            function afterSave() {
+                localStorage.setItem('burgerlab_last_order', JSON.stringify(order));
+                localStorage.setItem('burgerlab_cart', '[]');
+                try { window.open(order.whatsappUrl, '_blank'); } catch (error) {}
+                window.location.href = 'confirmation.html';
+            }
+
+            if (!window.db) {
+                afterSave();
+                return;
+            }
+
+            db.collection('orders').doc(order.id).set(order).then(function () {
+                afterSave();
+            }).catch(function () {
+                alert('تعذر حفظ الطلب حالياً، حاول مرة ثانية.');
+                button.disabled = false;
+                button.textContent = originalText;
+            });
+        }
+    </script>
+</body>
+</html>

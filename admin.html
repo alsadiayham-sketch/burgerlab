@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burger Lab - لوحة التحكم</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="login-screen" id="loginScreen">
+        <div class="login-card">
+            <img src="logo.png" alt="Burger Lab" class="login-logo">
+            <h1>لوحة تحكم برجر لاب</h1>
+            <p>Burger Lab | برجر لاب</p>
+            <form onsubmit="handleLogin(event)">
+                <input type="text" id="loginUser" placeholder="اسم المستخدم" required>
+                <input type="password" id="loginPass" placeholder="كلمة المرور" required>
+                <button type="submit">دخول</button>
+                <p class="error" id="loginError"></p>
+            </form>
+        </div>
+    </div>
+
+    <div class="admin-panel" id="adminPanel" style="display:none;">
+        <nav class="admin-nav">
+            <div class="admin-nav-inner">
+                <div>
+                    <h2>Burger Lab</h2>
+                    <span>برجر لاب</span>
+                </div>
+                <div class="admin-tabs">
+                    <button type="button" class="tab-btn active" onclick="switchTab('dashboard', this)">لوحة المعلومات</button>
+                    <button type="button" class="tab-btn" onclick="switchTab('products', this)">القائمة</button>
+                    <button type="button" class="tab-btn" onclick="switchTab('orders', this)">الطلبات</button>
+                    <button type="button" class="tab-btn" onclick="switchTab('settings', this)">الإعدادات</button>
+                </div>
+                <button type="button" class="logout-btn" onclick="logout()">خروج</button>
+            </div>
+        </nav>
+
+        <div class="admin-status-bar">
+            <div class="admin-status" id="adminStatus">جارٍ تحميل البيانات...</div>
+            <div class="loader" id="adminLoader"></div>
+        </div>
+
+        <section class="tab-content active" id="tab-dashboard">
+            <div class="section-top">
+                <h3>نظرة عامة</h3>
+                <div class="inline-actions">
+                    <button type="button" class="action-btn" onclick="runSeed(false)">Seed إذا كانت القائمة فارغة</button>
+                    <button type="button" class="action-btn secondary" onclick="runSeed(true)">إعادة Seed بالقوة</button>
+                </div>
+            </div>
+            <div class="stats-grid" id="statsGrid"></div>
+            <div class="panel-grid">
+                <div class="panel-card">
+                    <h4>آخر الطلبات</h4>
+                    <div id="latestOrders"></div>
+                </div>
+                <div class="panel-card">
+                    <h4>أكثر الأقسام</h4>
+                    <div id="topCategories"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tab-content" id="tab-products">
+            <div class="section-top">
+                <h3>إدارة القائمة</h3>
+                <div class="inline-actions">
+                    <button type="button" class="action-btn" onclick="openProductModal()">إضافة صنف</button>
+                </div>
+            </div>
+            <div class="table-card">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>الصورة</th>
+                            <th>الاسم</th>
+                            <th>القسم</th>
+                            <th>الوصف</th>
+                            <th>الأسعار</th>
+                            <th>الحالة</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="tab-content" id="tab-orders">
+            <div class="section-top">
+                <h3>الطلبات</h3>
+                <div class="filters-row">
+                    <input type="text" id="orderSearchInput" placeholder="ابحث بالاسم أو الهاتف" oninput="renderOrdersTable()">
+                    <select id="orderStatusFilter" onchange="renderOrdersTable()">
+                        <option value="all">كل الحالات</option>
+                        <option value="new">جديد</option>
+                        <option value="processing">قيد التحضير</option>
+                        <option value="completed">مكتمل</option>
+                        <option value="cancelled">ملغي</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-card">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>رقم الطلب</th>
+                            <th>الوقت</th>
+                            <th>العميل</th>
+                            <th>الهاتف</th>
+                            <th>النوع</th>
+                            <th>الإجمالي</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="tab-content" id="tab-settings">
+            <div class="section-top"><h3>إعدادات الموقع</h3></div>
+            <form class="settings-form" onsubmit="saveSettings(event)">
+                <div class="field-grid">
+                    <div>
+                        <label>رقم واتساب</label>
+                        <input type="text" id="settingWhatsapp" placeholder="9725xxxxxxxx">
+                    </div>
+                    <div>
+                        <label>الوصف الرئيسي</label>
+                        <input type="text" id="settingHero" placeholder="أطعم برجر بالبلد">
+                    </div>
+                    <div>
+                        <label>رابط Instagram</label>
+                        <input type="url" id="settingInstagram" placeholder="https://instagram.com/...">
+                    </div>
+                    <div style="grid-column: 1 / -1;">
+                        <label>نص من نحن</label>
+                        <textarea id="settingAbout"></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="action-btn">حفظ الإعدادات</button>
+            </form>
+        </section>
+    </div>
+
+    <div class="modal-overlay" id="productModal" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="productModalTitle">إضافة صنف</h3>
+                <button type="button" class="close-btn" onclick="closeModal('productModal')">✕</button>
+            </div>
+            <form onsubmit="saveProduct(event)">
+                <input type="hidden" id="productId">
+                <div class="field-grid">
+                    <div>
+                        <label>اسم الصنف</label>
+                        <input type="text" id="productName" required>
+                    </div>
+                    <div>
+                        <label>القسم</label>
+                        <select id="productCategory"></select>
+                    </div>
+                    <div style="grid-column: 1 / -1;">
+                        <label>الوصف</label>
+                        <textarea id="productDescription"></textarea>
+                    </div>
+                    <div>
+                        <label>رابط الصورة</label>
+                        <input type="url" id="productImage" placeholder="https://...">
+                    </div>
+                    <div>
+                        <label>الحالة</label>
+                        <select id="productStatus">
+                            <option value="normal">عادي</option>
+                            <option value="bestseller">الأكثر طلباً</option>
+                            <option value="special">مميز</option>
+                            <option value="soldout">غير متوفر</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sizes-wrap">
+                    <div class="section-top small">
+                        <h4>الأحجام والأسعار</h4>
+                        <button type="button" class="action-btn secondary" onclick="addSizeRow()">إضافة حجم</button>
+                    </div>
+                    <div id="sizesContainer" class="sizes-container"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="action-btn">حفظ</button>
+                    <button type="button" class="action-btn secondary" onclick="closeModal('productModal')">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="data.js"></script>
+    <script src="seed-data.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
