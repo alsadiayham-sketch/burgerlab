@@ -702,6 +702,10 @@ function openDealModal(dealDocId) {
     document.getElementById('dealSizeType').value = deal ? (deal.sizeType || 'any') : 'any';
     document.getElementById('dealDescription').value = deal ? (deal.description || '') : '';
     document.getElementById('dealActive').value = deal ? (deal.active || 'active') : 'active';
+    // Dates — default start date to today
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('dealStartDate').value = deal ? (deal.startDate || today) : today;
+    document.getElementById('dealEndDate').value = deal ? (deal.endDate || '') : '';
     document.getElementById('dealType').value = deal ? (deal.type || 'combo') : 'combo';
 
     populateDealCategorySelect(deal ? deal.category : '');
@@ -732,6 +736,8 @@ function saveDeal(event) {
         sizeType: document.getElementById('dealSizeType').value,
         description: document.getElementById('dealDescription').value.trim(),
         active: document.getElementById('dealActive').value,
+        startDate: document.getElementById('dealStartDate').value || '',
+        endDate: document.getElementById('dealEndDate').value || '',
         createdAt: new Date().toISOString()
     };
 

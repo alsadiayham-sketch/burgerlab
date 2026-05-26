@@ -58,6 +58,11 @@ function subscribeToStoreData() {
             renderStorefront();
         }
     });
+    db.collection('deals').onSnapshot(function (snapshot) {
+        var list = [];
+        snapshot.forEach(function (docSnap) { list.push(docSnap.data()); });
+        renderOffersBanner(list);
+    });
 }
 
 function setStoreNotice(message, isWarning) {
@@ -85,6 +90,69 @@ function trackVisit() {
         update[monthKey] = current + 1;
         return docRef.set(update, { merge: true });
     }).catch(function () {});
+}
+
+function renderOffersBanner(dealsList) {
+    var banner = document.getElementById('offersBanner');
+    var track = document.getElementById('offersBannerTrack');
+    var section = document.getElementById('offersSection');
+    if (!banner || !track) return;
+    var now = new Date();
+    var activeDeals = [];
+    var i;
+    for (i = 0; i < dealsList.length; i += 1) {
+        var deal = dealsList[i];
+        if (deal.active !== 'active' && deal.active !== true) continue;
+        if (deal.startDate && new Date(deal.startDate) > now) continue;
+        if (deal.endDate && new Date(deal.endDate) < now) continue;
+        activeDeals.push(deal);
+    }
+    // Banner
+    if (!activeDeals.length) {
+        banner.style.display = 'none';
+        if (section) section.style.display = 'none';
+        return;
+    }
+    var bannerHtml = '';
+    var bannerTexts = [];
+    for (i = 0; i < activeDeals.length; i += 1) {
+        var text = activeDeals[i].name || '';
+        if (activeDeals[i].description) text += ' - ' + activeDeals[i].description;
+        if (text) bannerTexts.push(text);
+    }
+    var doubled = bannerTexts.concat(bannerTexts);
+    for (i = 0; i < doubled.length; i += 1) {
+        bannerHtml += '<span>' + escapeHtml(doubled[i]) + '</span>';
+    }
+    track.innerHTML = bannerHtml;
+    banner.style.display = 'flex';
+
+    // Offers section cards
+    if (section) {
+        var cardsHtml = '';
+        for (i = 0; i < activeDeals.length; i += 1) {
+            var d = activeDeals[i];
+            var details = '';
+            if (d.type === 'combo' && d.combo) {
+                var parts = [];
+                if (d.combo.sandwichQty) parts.push(d.combo.sandwichQty + ' ساندويش');
+                if (d.combo.friesQty) parts.push(d.combo.friesQty + ' بطاطا');
+                if (d.combo.drinksQty) parts.push(d.combo.drinksQty + ' مشروب');
+                if (d.combo.sauces) parts.push('صوصات');
+                details = parts.join(' + ');
+            } else if (d.description) {
+                details = d.description;
+            }
+            cardsHtml += '<div class="offer-card">';
+            cardsHtml += '<span class="offer-badge">عرض 🔥</span>';
+            cardsHtml += '<h4>' + escapeHtml(d.name || '') + '</h4>';
+            if (details) cardsHtml += '<p>' + escapeHtml(details) + '</p>';
+            cardsHtml += '<div class="offer-price">' + formatCurrency(d.price || 0) + ' <small>فقط</small></div>';
+            cardsHtml += '</div>';
+        }
+        section.innerHTML = cardsHtml;
+        section.style.display = activeDeals.length ? 'grid' : 'none';
+    }
 }
 
 function setupSearchSync() {

@@ -19,6 +19,40 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
+
+/* Offers banner */
+.offers-banner {
+    background: linear-gradient(90deg, var(--primary-dark), var(--primary), var(--accent));
+    color: #fff;
+    overflow: hidden;
+    position: relative;
+    z-index: 1001;
+    height: 36px;
+    display: flex;
+    align-items: center;
+}
+.offers-banner-track {
+    display: flex;
+    gap: 60px;
+    white-space: nowrap;
+    animation: scrollBanner 20s linear infinite;
+    padding: 0 30px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+.offers-banner-track span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.offers-banner-track span::before {
+    content: '🔥';
+}
+@keyframes scrollBanner {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
 body {
     font-family: 'Tajawal', sans-serif;
     background: var(--bg);
@@ -251,6 +285,61 @@ select:focus {
     border-radius: 14px;
     margin-bottom: 18px;
 }
+
+/* Offers section */
+.offers-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+}
+.offer-card {
+    background: linear-gradient(135deg, rgba(230,57,70,0.15), rgba(255,140,0,0.12));
+    border: 1px solid rgba(255,140,0,0.3);
+    border-radius: 20px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+}
+.offer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255,140,0,0.15);
+}
+.offer-card .offer-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+.offer-card h4 {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+    color: var(--accent);
+}
+.offer-card p {
+    color: var(--text-light);
+    font-size: 0.88rem;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+.offer-card .offer-price {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--white);
+}
+.offer-card .offer-price small {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-light);
+    margin-right: 4px;
+}
+
 .category-tabs {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

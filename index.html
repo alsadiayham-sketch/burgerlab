@@ -12,6 +12,9 @@
     <link rel="icon" href="logo.png">
 </head>
 <body>
+    <div class="offers-banner" id="offersBanner" style="display:none;">
+        <div class="offers-banner-track" id="offersBannerTrack"></div>
+    </div>
     <nav class="navbar" id="navbar">
         <div class="container nav-container">
             <a href="#home" class="logo brand-mark">
@@ -75,9 +78,9 @@
                     <div class="menu-search">
                         <input type="text" id="menuSearchInput" placeholder="دور على البرجر أو الإضافة اللي بدك إياها...">
                     </div>
-                    <div class="order-note">السفري يظهر في الفاتورة مع <strong>+ توصيل</strong></div>
                 </div>
                 <p id="storeNotice" class="store-notice" style="display:none;"></p>
+                <div id="offersSection" class="offers-section" style="display:none;"></div>
                 <div class="category-tabs">
                     <button type="button" class="menu-tab active" data-tab="burgers" onclick="setActiveTab('burgers', this)">البرجر</button>
                     <button type="button" class="menu-tab" data-tab="meals" onclick="setActiveTab('meals', this)">الوجبات</button>
