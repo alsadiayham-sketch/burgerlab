@@ -339,6 +339,40 @@ select:focus {
     color: var(--text-light);
     margin-right: 4px;
 }
+.offer-selections-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+}
+.offer-select-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-soft);
+    padding: 8px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    transition: var(--transition);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.offer-select-item:hover {
+    border-color: rgba(255,140,0,0.3);
+    background: rgba(255,140,0,0.08);
+}
+.offer-select-item input[type=checkbox] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+}
+.offer-select-item input[type=checkbox]:disabled + span {
+    opacity: 0.4;
+}
 
 .category-tabs {
     display: grid;

@@ -300,6 +300,7 @@ function openProductModal(productId) {
     document.getElementById('productDescription').value = product ? product.description : '';
     document.getElementById('productImage').value = product ? product.image : '';
     document.getElementById('productStatus').value = product ? product.status : 'normal';
+    document.getElementById('productSandwichType').value = product ? (product.sandwichType || '') : '';
     populateCategorySelect();
     document.getElementById('productCategory').value = product ? product.category : MENU_CATEGORIES[0];
     var container = document.getElementById('sizesContainer');
@@ -351,6 +352,7 @@ function saveProduct(event) {
         sizes: sizes,
         image: document.getElementById('productImage').value.trim() || FALLBACK_IMAGE,
         status: document.getElementById('productStatus').value,
+        sandwichType: document.getElementById('productSandwichType').value || '',
         brand: ''
     });
     if (!window.db) {
@@ -662,16 +664,27 @@ function populateComboSandwiches(selected) {
     var container = document.getElementById('comboSandwiches');
     if (!container) return;
     var selectedArr = selected || [];
+    var typeFilter = '';
+    var typeSelect = document.getElementById('comboSandwichType');
+    if (typeSelect) typeFilter = typeSelect.value;
     var html = '';
     var i;
-    // Show only burger/chicken/tender items (sandwich-type products)
     var sandwichCategories = ['برجر لحم', 'برجر دجاج', 'تندر دجاج', 'أطفال'];
     for (i = 0; i < products.length; i += 1) {
         if (sandwichCategories.indexOf(products[i].category) < 0) continue;
+        if (typeFilter && products[i].sandwichType !== typeFilter) continue;
         var checked = selectedArr.indexOf(products[i].id) >= 0 ? 'checked' : '';
-        html += '<label class="checkbox-item"><input type="checkbox" value="' + products[i].id + '" ' + checked + '><span>' + escapeHtml(products[i].name) + '</span></label>';
+        var typeLabel = products[i].sandwichType ? ' (' + getSandwichTypeLabel(products[i].sandwichType) + ')' : '';
+        html += '<label class="checkbox-item"><input type="checkbox" value="' + products[i].id + '" ' + checked + '><span>' + escapeHtml(products[i].name) + escapeHtml(typeLabel) + '</span></label>';
     }
-    container.innerHTML = html;
+    container.innerHTML = html || '<span style="color:var(--text-light);">لا توجد أصناف بهذا النوع.</span>';
+}
+
+function getSandwichTypeLabel(type) {
+    if (type === 'mini') return 'ميني';
+    if (type === 'single') return 'سنجل';
+    if (type === 'double') return 'دبل';
+    return '';
 }
 
 function getCheckedValues(containerId, asNumbers) {
@@ -700,6 +713,7 @@ function openDealModal(dealDocId) {
     document.getElementById('dealPrice').value = deal ? deal.price : '';
     document.getElementById('dealQty').value = deal ? (deal.qty || 2) : 2;
     document.getElementById('dealSizeType').value = deal ? (deal.sizeType || 'any') : 'any';
+    document.getElementById('dealSandwichType').value = deal ? (deal.sandwichType || 'any') : 'any';
     document.getElementById('dealDescription').value = deal ? (deal.description || '') : '';
     document.getElementById('dealActive').value = deal ? (deal.active || 'active') : 'active';
     // Dates — default start date to today
@@ -715,6 +729,7 @@ function openDealModal(dealDocId) {
     if (deal && deal.type === 'specific') populateDealSpecificItems(deal.items || []);
     if (deal && deal.type === 'combo') {
         var combo = deal.combo || {};
+        document.getElementById('comboSandwichType').value = combo.sandwichType || '';
         populateComboSandwiches(combo.sandwiches || []);
         document.getElementById('comboSandwichQty').value = combo.sandwichQty || 4;
         document.getElementById('comboFriesQty').value = combo.friesQty || 2;
@@ -734,6 +749,7 @@ function saveDeal(event) {
         price: Number(document.getElementById('dealPrice').value) || 0,
         qty: Number(document.getElementById('dealQty').value) || 2,
         sizeType: document.getElementById('dealSizeType').value,
+        sandwichType: document.getElementById('dealSandwichType').value || 'any',
         description: document.getElementById('dealDescription').value.trim(),
         active: document.getElementById('dealActive').value,
         startDate: document.getElementById('dealStartDate').value || '',
@@ -754,6 +770,7 @@ function saveDeal(event) {
         if (!comboSandwiches.length) { alert('اختر ساندويش واحد على الأقل للكومبو.'); return; }
         dealData.combo = {
             sandwiches: comboSandwiches,
+            sandwichType: document.getElementById('comboSandwichType').value || '',
             sandwichQty: Number(document.getElementById('comboSandwichQty').value) || 0,
             friesQty: Number(document.getElementById('comboFriesQty').value) || 0,
             drinksQty: Number(document.getElementById('comboDrinksQty').value) || 0,

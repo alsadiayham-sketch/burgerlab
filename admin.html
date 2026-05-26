@@ -206,6 +206,15 @@
                             <option value="soldout">غير متوفر</option>
                         </select>
                     </div>
+                    <div>
+                        <label>نوع الساندويش</label>
+                        <select id="productSandwichType">
+                            <option value="">لا ينطبق</option>
+                            <option value="mini">ميني</option>
+                            <option value="single">سنجل</option>
+                            <option value="double">دبل</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="sizes-wrap">
                     <div class="section-top small">
@@ -267,6 +276,14 @@
                             <div class="combo-row">
                                 <label>🍔 الساندويشات</label>
                                 <div class="combo-row-inner">
+                                    <div><label>نوع الساندويش</label>
+                                        <select id="comboSandwichType" onchange="populateComboSandwiches()">
+                                            <option value="">الكل</option>
+                                            <option value="mini">ميني</option>
+                                            <option value="single">سنجل</option>
+                                            <option value="double">دبل</option>
+                                        </select>
+                                    </div>
                                     <div><label>اختر الأصناف</label><div id="comboSandwiches" class="checkbox-grid scrollable"></div></div>
                                     <div><label>العدد</label><input type="number" id="comboSandwichQty" min="0" value="4" placeholder="4"></div>
                                 </div>
@@ -302,6 +319,15 @@
                             <option value="any">أي حجم</option>
                             <option value="sandwich">ساندويش فقط</option>
                             <option value="meal">وجبة فقط</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>نوع الساندويش المشمول</label>
+                        <select id="dealSandwichType">
+                            <option value="any">الكل (ميني + سنجل + دبل)</option>
+                            <option value="mini">ميني فقط</option>
+                            <option value="single">سنجل فقط</option>
+                            <option value="double">دبل فقط</option>
                         </select>
                     </div>
                     <div style="grid-column: 1 / -1;">

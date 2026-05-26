@@ -162,6 +162,29 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="offerModal" style="display:none;" onclick="closeOfferModal(event)">
+        <div class="pdp-modal" onclick="event.stopPropagation()">
+            <button class="modal-close" type="button" onclick="closeOfferModal()">✕</button>
+            <div class="pdp-content" style="padding:24px;">
+                <span class="pdp-category">🔥 عرض خاص</span>
+                <h3 id="offerModalName"></h3>
+                <p id="offerModalDesc" style="color:var(--text-light);margin-bottom:14px;"></p>
+                <div id="offerModalDetails" style="margin-bottom:18px;"></div>
+                <div id="offerModalSelections" style="margin-bottom:18px;"></div>
+                <div class="pdp-price" id="offerModalPrice"></div>
+                <div class="qty-row">
+                    <span>الكمية</span>
+                    <div class="qty-selector">
+                        <button type="button" onclick="changeOfferQty(-1)">−</button>
+                        <span id="offerModalQty">1</span>
+                        <button type="button" onclick="changeOfferQty(1)">+</button>
+                    </div>
+                </div>
+                <button type="button" class="btn-primary wide" onclick="addOfferToCart()">أضف العرض للسلة</button>
+            </div>
+        </div>
+    </div>
+
     <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
     <aside class="cart-sidebar" id="cartSidebar">
         <div class="cart-header">

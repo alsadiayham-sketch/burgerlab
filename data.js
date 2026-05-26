@@ -47,7 +47,8 @@ function normalizeProduct(product) {
         sizes: sizes,
         discount: Number(source.discount || 0) || 0,
         image: String(source.image || '').trim(),
-        status: String(source.status || 'normal').trim() || 'normal'
+        status: String(source.status || 'normal').trim() || 'normal',
+        sandwichType: String(source.sandwichType || '').trim()
     };
 }
 
