@@ -90,6 +90,28 @@
                     <tbody id="productsTableBody"></tbody>
                 </table>
             </div>
+
+            <div class="section-top" style="margin-top: 40px;">
+                <h3>🔥 العروض والصفقات</h3>
+                <div class="inline-actions">
+                    <button type="button" class="action-btn" onclick="openDealModal()">إضافة عرض</button>
+                </div>
+            </div>
+            <div class="table-card">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>اسم العرض</th>
+                            <th>النوع</th>
+                            <th>التفاصيل</th>
+                            <th>السعر</th>
+                            <th>الحالة</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dealsTableBody"></tbody>
+                </table>
+            </div>
         </section>
 
         <section class="tab-content" id="tab-orders">
@@ -195,6 +217,77 @@
                 <div class="modal-actions">
                     <button type="submit" class="action-btn">حفظ</button>
                     <button type="button" class="action-btn secondary" onclick="closeModal('productModal')">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="dealModal" style="display:none;">
+        <div class="modal-card" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="dealModalTitle">إضافة عرض</h3>
+                <button type="button" class="close-btn" onclick="closeModal('dealModal')">✕</button>
+            </div>
+            <form onsubmit="saveDeal(event)">
+                <input type="hidden" id="dealId">
+                <div class="field-grid">
+                    <div style="grid-column: 1 / -1;">
+                        <label>اسم العرض</label>
+                        <input type="text" id="dealName" required placeholder="مثلاً: أي 2 وجبات بـ 50 شيكل">
+                    </div>
+                    <div>
+                        <label>نوع العرض</label>
+                        <select id="dealType" onchange="onDealTypeChange()">
+                            <option value="category">قسم كامل (كل البرجر / كل الدجاج...)</option>
+                            <option value="multi_category">أقسام متعددة</option>
+                            <option value="specific">أصناف محددة</option>
+                            <option value="all">كل القائمة</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>سعر العرض (₪)</label>
+                        <input type="number" id="dealPrice" min="0" required placeholder="50">
+                    </div>
+                    <div id="dealCategoryWrap">
+                        <label>القسم</label>
+                        <select id="dealCategory"></select>
+                    </div>
+                    <div id="dealMultiCategoryWrap" style="display:none; grid-column: 1 / -1;">
+                        <label>اختر الأقسام</label>
+                        <div id="dealMultiCategories" class="checkbox-grid"></div>
+                    </div>
+                    <div id="dealSpecificWrap" style="display:none; grid-column: 1 / -1;">
+                        <label>اختر الأصناف المشمولة</label>
+                        <div id="dealSpecificItems" class="checkbox-grid scrollable"></div>
+                    </div>
+                    <div>
+                        <label>الكمية المطلوبة</label>
+                        <input type="number" id="dealQty" min="1" value="2" placeholder="مثلاً: 2">
+                        <small style="color: var(--text-light);">عدد القطع المطلوبة لتفعيل العرض</small>
+                    </div>
+                    <div>
+                        <label>نوع الحجم المشمول</label>
+                        <select id="dealSizeType">
+                            <option value="any">أي حجم</option>
+                            <option value="sandwich">ساندويش فقط</option>
+                            <option value="meal">وجبة فقط</option>
+                        </select>
+                    </div>
+                    <div style="grid-column: 1 / -1;">
+                        <label>وصف العرض (يظهر للزبائن)</label>
+                        <textarea id="dealDescription" placeholder="مثلاً: اطلب أي 2 وجبات برجر لحم بـ 50 شيكل فقط!"></textarea>
+                    </div>
+                    <div>
+                        <label>الحالة</label>
+                        <select id="dealActive">
+                            <option value="active">فعّال</option>
+                            <option value="inactive">غير فعّال</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="action-btn">حفظ العرض</button>
+                    <button type="button" class="action-btn secondary" onclick="closeModal('dealModal')">إلغاء</button>
                 </div>
             </form>
         </div>

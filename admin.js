@@ -105,6 +105,7 @@ function ensureSeedIfEmpty() {
 
 function subscribeToData() {
     clearSubscriptions();
+    subscribeToDeals();
     unsubscribers.push(db.collection('products').orderBy('id').onSnapshot(function (snapshot) {
         var list = [];
         snapshot.forEach(function (docSnap) { list.push(normalizeProduct(docSnap.data())); });
@@ -504,5 +505,230 @@ function runSeed(force) {
     }).catch(function (error) {
         setLoading(false);
         setStatus((error && error.message) || 'تعذر تنفيذ Seed Data.', 'error');
+    });
+}
+
+// ===================== DEALS MANAGEMENT =====================
+
+var deals = [];
+
+function subscribeToDeals() {
+    if (!window.db) return;
+    unsubscribers.push(db.collection('deals').orderBy('createdAt', 'desc').onSnapshot(function (snapshot) {
+        var list = [];
+        snapshot.forEach(function (docSnap) {
+            var data = docSnap.data() || {};
+            data._docId = docSnap.id;
+            list.push(data);
+        });
+        deals = list;
+        renderDealsTable();
+    }, function () {
+        setStatus('تعذر تحميل العروض.', 'error');
+    }));
+}
+
+function getDealTypeLabel(type) {
+    var labels = {
+        category: 'قسم كامل',
+        multi_category: 'أقسام متعددة',
+        specific: 'أصناف محددة',
+        all: 'كل القائمة'
+    };
+    return labels[type] || type;
+}
+
+function getDealDetailsText(deal) {
+    if (deal.type === 'all') return 'كل أصناف القائمة';
+    if (deal.type === 'category') return 'قسم: ' + (deal.category || '-');
+    if (deal.type === 'multi_category') return 'أقسام: ' + (deal.categories || []).join('، ');
+    if (deal.type === 'specific') {
+        var names = [];
+        var i;
+        for (i = 0; i < (deal.items || []).length; i += 1) {
+            var p = findProductById(products, deal.items[i]);
+            if (p) names.push(p.name);
+        }
+        return names.length ? names.join('، ') : '-';
+    }
+    return '-';
+}
+
+function renderDealsTable() {
+    var body = document.getElementById('dealsTableBody');
+    if (!body) return;
+    if (!deals.length) {
+        body.innerHTML = '<tr><td colspan="6">لا توجد عروض حالياً. أضف عرضاً جديداً!</td></tr>';
+        return;
+    }
+    var html = '';
+    var i;
+    for (i = 0; i < deals.length; i += 1) {
+        var deal = deals[i];
+        var sizeLabel = deal.sizeType === 'sandwich' ? '(ساندويش فقط)' : deal.sizeType === 'meal' ? '(وجبة فقط)' : '(أي حجم)';
+        html += '<tr>';
+        html += '<td><strong>' + escapeHtml(deal.name || '-') + '</strong></td>';
+        html += '<td>' + escapeHtml(getDealTypeLabel(deal.type)) + '</td>';
+        html += '<td style="max-width:250px;">' + escapeHtml(getDealDetailsText(deal)) + '<br><small>' + escapeHtml(String(deal.qty || 2)) + ' قطع ' + escapeHtml(sizeLabel) + '</small></td>';
+        html += '<td><strong style="color:var(--accent);">' + formatCurrency(deal.price || 0) + '</strong></td>';
+        html += '<td>' + buildDealStatusPill(deal.active) + '</td>';
+        html += '<td><div class="row-actions"><button type="button" class="edit-btn" onclick="openDealModal(\'' + escapeHtml(deal._docId) + '\')">تعديل</button><button type="button" class="delete-btn" onclick="deleteDeal(\'' + escapeHtml(deal._docId) + '\')">حذف</button></div></td>';
+        html += '</tr>';
+    }
+    body.innerHTML = html;
+}
+
+function buildDealStatusPill(active) {
+    if (active === 'active' || active === true) return '<span class="status-pill bestseller">فعّال</span>';
+    return '<span class="status-pill soldout">غير فعّال</span>';
+}
+
+function onDealTypeChange() {
+    var type = document.getElementById('dealType').value;
+    document.getElementById('dealCategoryWrap').style.display = type === 'category' ? '' : 'none';
+    document.getElementById('dealMultiCategoryWrap').style.display = type === 'multi_category' ? '' : 'none';
+    document.getElementById('dealSpecificWrap').style.display = type === 'specific' ? '' : 'none';
+    if (type === 'multi_category') populateDealMultiCategories();
+    if (type === 'specific') populateDealSpecificItems();
+}
+
+function populateDealCategorySelect(selected) {
+    var select = document.getElementById('dealCategory');
+    if (!select) return;
+    var html = '';
+    var i;
+    for (i = 0; i < MENU_CATEGORIES.length; i += 1) {
+        html += '<option value="' + escapeHtml(MENU_CATEGORIES[i]) + '" ' + (MENU_CATEGORIES[i] === selected ? 'selected' : '') + '>' + escapeHtml(MENU_CATEGORIES[i]) + '</option>';
+    }
+    select.innerHTML = html;
+}
+
+function populateDealMultiCategories(selected) {
+    var container = document.getElementById('dealMultiCategories');
+    if (!container) return;
+    var selectedArr = selected || [];
+    var html = '';
+    var i;
+    for (i = 0; i < MENU_CATEGORIES.length; i += 1) {
+        var checked = selectedArr.indexOf(MENU_CATEGORIES[i]) >= 0 ? 'checked' : '';
+        html += '<label class="checkbox-item"><input type="checkbox" value="' + escapeHtml(MENU_CATEGORIES[i]) + '" ' + checked + '><span>' + escapeHtml(MENU_CATEGORIES[i]) + '</span></label>';
+    }
+    container.innerHTML = html;
+}
+
+function populateDealSpecificItems(selected) {
+    var container = document.getElementById('dealSpecificItems');
+    if (!container) return;
+    var selectedArr = selected || [];
+    var html = '';
+    var i;
+    for (i = 0; i < products.length; i += 1) {
+        var checked = selectedArr.indexOf(products[i].id) >= 0 ? 'checked' : '';
+        html += '<label class="checkbox-item"><input type="checkbox" value="' + products[i].id + '" ' + checked + '><span>' + escapeHtml(products[i].name) + ' (' + escapeHtml(products[i].category) + ')</span></label>';
+    }
+    container.innerHTML = html;
+}
+
+function getCheckedValues(containerId, asNumbers) {
+    var container = document.getElementById(containerId);
+    if (!container) return [];
+    var inputs = container.querySelectorAll('input[type=checkbox]:checked');
+    var values = [];
+    var i;
+    for (i = 0; i < inputs.length; i += 1) {
+        values.push(asNumbers ? Number(inputs[i].value) : inputs[i].value);
+    }
+    return values;
+}
+
+function openDealModal(dealDocId) {
+    var deal = null;
+    if (dealDocId) {
+        var i;
+        for (i = 0; i < deals.length; i += 1) {
+            if (deals[i]._docId === dealDocId) { deal = deals[i]; break; }
+        }
+    }
+    document.getElementById('dealModalTitle').textContent = deal ? 'تعديل العرض' : 'إضافة عرض';
+    document.getElementById('dealId').value = deal ? deal._docId : '';
+    document.getElementById('dealName').value = deal ? deal.name : '';
+    document.getElementById('dealPrice').value = deal ? deal.price : '';
+    document.getElementById('dealQty').value = deal ? (deal.qty || 2) : 2;
+    document.getElementById('dealSizeType').value = deal ? (deal.sizeType || 'any') : 'any';
+    document.getElementById('dealDescription').value = deal ? (deal.description || '') : '';
+    document.getElementById('dealActive').value = deal ? (deal.active || 'active') : 'active';
+    document.getElementById('dealType').value = deal ? (deal.type || 'category') : 'category';
+
+    populateDealCategorySelect(deal ? deal.category : '');
+    onDealTypeChange();
+
+    if (deal && deal.type === 'multi_category') populateDealMultiCategories(deal.categories || []);
+    if (deal && deal.type === 'specific') populateDealSpecificItems(deal.items || []);
+
+    document.getElementById('dealModal').style.display = 'flex';
+}
+
+function saveDeal(event) {
+    event.preventDefault();
+    var type = document.getElementById('dealType').value;
+    var dealData = {
+        name: document.getElementById('dealName').value.trim(),
+        type: type,
+        price: Number(document.getElementById('dealPrice').value) || 0,
+        qty: Number(document.getElementById('dealQty').value) || 2,
+        sizeType: document.getElementById('dealSizeType').value,
+        description: document.getElementById('dealDescription').value.trim(),
+        active: document.getElementById('dealActive').value,
+        createdAt: new Date().toISOString()
+    };
+
+    if (type === 'category') {
+        dealData.category = document.getElementById('dealCategory').value;
+    } else if (type === 'multi_category') {
+        dealData.categories = getCheckedValues('dealMultiCategories', false);
+        if (!dealData.categories.length) { alert('اختر قسماً واحداً على الأقل.'); return; }
+    } else if (type === 'specific') {
+        dealData.items = getCheckedValues('dealSpecificItems', true);
+        if (!dealData.items.length) { alert('اختر صنفاً واحداً على الأقل.'); return; }
+    }
+
+    if (!dealData.name) { alert('أدخل اسم العرض.'); return; }
+    if (!dealData.price) { alert('أدخل سعر العرض.'); return; }
+
+    if (!window.db) { alert('فايرستور غير متاح حالياً.'); return; }
+
+    var docId = document.getElementById('dealId').value || ('deal_' + Date.now());
+    // Preserve original createdAt on edit
+    if (document.getElementById('dealId').value) {
+        var i;
+        for (i = 0; i < deals.length; i += 1) {
+            if (deals[i]._docId === docId && deals[i].createdAt) {
+                dealData.createdAt = deals[i].createdAt;
+                break;
+            }
+        }
+    }
+
+    setLoading(true);
+    db.collection('deals').doc(docId).set(dealData).then(function () {
+        setLoading(false);
+        closeModal('dealModal');
+        setStatus('تم حفظ العرض بنجاح.', 'success');
+    }).catch(function () {
+        setLoading(false);
+        setStatus('تعذر حفظ العرض.', 'error');
+    });
+}
+
+function deleteDeal(dealDocId) {
+    if (!confirm('هل تريد حذف هذا العرض؟')) return;
+    if (!window.db) { alert('فايرستور غير متاح حالياً.'); return; }
+    setLoading(true);
+    db.collection('deals').doc(dealDocId).delete().then(function () {
+        setLoading(false);
+        setStatus('تم حذف العرض.', 'success');
+    }).catch(function () {
+        setLoading(false);
+        setStatus('تعذر حذف العرض.', 'error');
     });
 }
