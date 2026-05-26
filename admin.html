@@ -238,6 +238,7 @@
                     <div>
                         <label>نوع العرض</label>
                         <select id="dealType" onchange="onDealTypeChange()">
+                            <option value="combo">كومبو (ساندويشات + بطاطا + مشروبات + صوصات)</option>
                             <option value="category">قسم كامل (كل البرجر / كل الدجاج...)</option>
                             <option value="multi_category">أقسام متعددة</option>
                             <option value="specific">أصناف محددة</option>
@@ -259,6 +260,36 @@
                     <div id="dealSpecificWrap" style="display:none; grid-column: 1 / -1;">
                         <label>اختر الأصناف المشمولة</label>
                         <div id="dealSpecificItems" class="checkbox-grid scrollable"></div>
+                    </div>
+                    <div id="dealComboWrap" style="display:none; grid-column: 1 / -1;">
+                        <label style="margin-bottom:8px; display:block; font-weight:700;">محتويات الكومبو</label>
+                        <div class="combo-fields">
+                            <div class="combo-row">
+                                <label>🍔 الساندويشات</label>
+                                <div class="combo-row-inner">
+                                    <div><label>اختر الأصناف</label><div id="comboSandwiches" class="checkbox-grid scrollable"></div></div>
+                                    <div><label>العدد</label><input type="number" id="comboSandwichQty" min="0" value="4" placeholder="4"></div>
+                                </div>
+                            </div>
+                            <div class="combo-row">
+                                <label>🍟 بطاطا</label>
+                                <div class="combo-row-inner">
+                                    <div><label>العدد</label><input type="number" id="comboFriesQty" min="0" value="2" placeholder="2"></div>
+                                </div>
+                            </div>
+                            <div class="combo-row">
+                                <label>🥤 مشروبات</label>
+                                <div class="combo-row-inner">
+                                    <div><label>العدد</label><input type="number" id="comboDrinksQty" min="0" value="2" placeholder="2"></div>
+                                </div>
+                            </div>
+                            <div class="combo-row">
+                                <label>🫙 صوصات</label>
+                                <div class="combo-row-inner">
+                                    <div><label>مشمولة؟</label><select id="comboSauces"><option value="yes">نعم</option><option value="no">لا</option></select></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label>الكمية المطلوبة</label>

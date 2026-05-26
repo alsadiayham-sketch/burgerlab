@@ -544,6 +544,7 @@ function subscribeToDeals() {
 
 function getDealTypeLabel(type) {
     var labels = {
+        combo: 'كومبو',
         category: 'قسم كامل',
         multi_category: 'أقسام متعددة',
         specific: 'أصناف محددة',
@@ -556,6 +557,15 @@ function getDealDetailsText(deal) {
     if (deal.type === 'all') return 'كل أصناف القائمة';
     if (deal.type === 'category') return 'قسم: ' + (deal.category || '-');
     if (deal.type === 'multi_category') return 'أقسام: ' + (deal.categories || []).join('، ');
+    if (deal.type === 'combo') {
+        var combo = deal.combo || {};
+        var parts = [];
+        if (combo.sandwichQty) parts.push(combo.sandwichQty + ' ساندويش');
+        if (combo.friesQty) parts.push(combo.friesQty + ' بطاطا');
+        if (combo.drinksQty) parts.push(combo.drinksQty + ' مشروب');
+        if (combo.sauces) parts.push('صوصات');
+        return parts.join(' + ') || '-';
+    }
     if (deal.type === 'specific') {
         var names = [];
         var i;
@@ -602,8 +612,13 @@ function onDealTypeChange() {
     document.getElementById('dealCategoryWrap').style.display = type === 'category' ? '' : 'none';
     document.getElementById('dealMultiCategoryWrap').style.display = type === 'multi_category' ? '' : 'none';
     document.getElementById('dealSpecificWrap').style.display = type === 'specific' ? '' : 'none';
+    document.getElementById('dealComboWrap').style.display = type === 'combo' ? '' : 'none';
+    // Hide qty/size for combo (combo has its own qty fields)
+    document.getElementById('dealQty').parentNode.style.display = type === 'combo' ? 'none' : '';
+    document.getElementById('dealSizeType').parentNode.style.display = type === 'combo' ? 'none' : '';
     if (type === 'multi_category') populateDealMultiCategories();
     if (type === 'specific') populateDealSpecificItems();
+    if (type === 'combo') populateComboSandwiches();
 }
 
 function populateDealCategorySelect(selected) {
@@ -643,6 +658,22 @@ function populateDealSpecificItems(selected) {
     container.innerHTML = html;
 }
 
+function populateComboSandwiches(selected) {
+    var container = document.getElementById('comboSandwiches');
+    if (!container) return;
+    var selectedArr = selected || [];
+    var html = '';
+    var i;
+    // Show only burger/chicken/tender items (sandwich-type products)
+    var sandwichCategories = ['برجر لحم', 'برجر دجاج', 'تندر دجاج', 'أطفال'];
+    for (i = 0; i < products.length; i += 1) {
+        if (sandwichCategories.indexOf(products[i].category) < 0) continue;
+        var checked = selectedArr.indexOf(products[i].id) >= 0 ? 'checked' : '';
+        html += '<label class="checkbox-item"><input type="checkbox" value="' + products[i].id + '" ' + checked + '><span>' + escapeHtml(products[i].name) + '</span></label>';
+    }
+    container.innerHTML = html;
+}
+
 function getCheckedValues(containerId, asNumbers) {
     var container = document.getElementById(containerId);
     if (!container) return [];
@@ -671,13 +702,21 @@ function openDealModal(dealDocId) {
     document.getElementById('dealSizeType').value = deal ? (deal.sizeType || 'any') : 'any';
     document.getElementById('dealDescription').value = deal ? (deal.description || '') : '';
     document.getElementById('dealActive').value = deal ? (deal.active || 'active') : 'active';
-    document.getElementById('dealType').value = deal ? (deal.type || 'category') : 'category';
+    document.getElementById('dealType').value = deal ? (deal.type || 'combo') : 'combo';
 
     populateDealCategorySelect(deal ? deal.category : '');
     onDealTypeChange();
 
     if (deal && deal.type === 'multi_category') populateDealMultiCategories(deal.categories || []);
     if (deal && deal.type === 'specific') populateDealSpecificItems(deal.items || []);
+    if (deal && deal.type === 'combo') {
+        var combo = deal.combo || {};
+        populateComboSandwiches(combo.sandwiches || []);
+        document.getElementById('comboSandwichQty').value = combo.sandwichQty || 4;
+        document.getElementById('comboFriesQty').value = combo.friesQty || 2;
+        document.getElementById('comboDrinksQty').value = combo.drinksQty || 2;
+        document.getElementById('comboSauces').value = combo.sauces ? 'yes' : 'no';
+    }
 
     document.getElementById('dealModal').style.display = 'flex';
 }
@@ -704,6 +743,16 @@ function saveDeal(event) {
     } else if (type === 'specific') {
         dealData.items = getCheckedValues('dealSpecificItems', true);
         if (!dealData.items.length) { alert('اختر صنفاً واحداً على الأقل.'); return; }
+    } else if (type === 'combo') {
+        var comboSandwiches = getCheckedValues('comboSandwiches', true);
+        if (!comboSandwiches.length) { alert('اختر ساندويش واحد على الأقل للكومبو.'); return; }
+        dealData.combo = {
+            sandwiches: comboSandwiches,
+            sandwichQty: Number(document.getElementById('comboSandwichQty').value) || 0,
+            friesQty: Number(document.getElementById('comboFriesQty').value) || 0,
+            drinksQty: Number(document.getElementById('comboDrinksQty').value) || 0,
+            sauces: document.getElementById('comboSauces').value === 'yes'
+        };
     }
 
     if (!dealData.name) { alert('أدخل اسم العرض.'); return; }

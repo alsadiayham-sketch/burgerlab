@@ -209,3 +209,10 @@ textarea { min-height: 110px; resize: vertical; }
 .checkbox-item { display: flex; align-items: center; gap: 6px; background: #262626; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; }
 .checkbox-item:hover { background: #333; }
 .checkbox-item input[type=checkbox] { accent-color: var(--accent, #ff8c00); width: 16px; height: 16px; }
+
+/* Combo deal fields */
+.combo-fields { display: grid; gap: 16px; }
+.combo-row { background: #1a1a1a; border-radius: 12px; padding: 14px; border: 1px solid rgba(255,255,255,0.06); }
+.combo-row > label { font-weight: 700; margin-bottom: 10px; display: block; font-size: 0.95rem; }
+.combo-row-inner { display: grid; gap: 10px; }
+.combo-row-inner input, .combo-row-inner select { width: 100%; }
