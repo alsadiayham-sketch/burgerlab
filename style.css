@@ -493,11 +493,13 @@ select:focus {
 .cart-header { padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .cart-header p { color: var(--text-light); font-size: 0.9rem; }
 .cart-items {
-    flex: 1;
+    flex: 0 1 auto;
     overflow-y: auto;
+    max-height: calc(100vh - 200px);
     padding: 18px 0;
     display: grid;
     gap: 12px;
+    align-content: start;
 }
 .cart-empty {
     min-height: 180px;
