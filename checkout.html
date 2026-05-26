@@ -299,7 +299,9 @@
         }
 
         function buildWhatsAppMessage(order) {
-            var text = 'مرحبا، لدي طلب جديد من موقع Burger Lab (' + order.id + '):\n';
+            var text = 'مرحبا، لدي طلب جديد من موقع Burger Lab:\n';
+            text += 'ـــــــــــــــــــــــــــ\n';
+            text += '📋 رقم الطلب: ' + order.id + '\n';
             text += 'ـــــــــــــــــــــــــــ\n';
             text += 'الاسم: ' + order.customerName + '\n';
             text += 'الهاتف: ' + order.customerPhone + '\n';
