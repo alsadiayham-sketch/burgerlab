@@ -11,6 +11,7 @@ var pdpQty = 1;
 var activeOffers = [];
 var currentOffer = null;
 var offerQty = 1;
+var offerSelectedPicks = [];
 
 function parseStoredCart() {
     try {
@@ -65,7 +66,7 @@ function subscribeToStoreData() {
         var list = [];
         snapshot.forEach(function (docSnap) { list.push(docSnap.data()); });
         renderOffersBanner(list);
-    });
+    }, function (err) { console.error('Deals error:', err); });
 }
 
 function setStoreNotice(message, isWarning) {
@@ -133,7 +134,7 @@ function renderOffersBanner(dealsList) {
 
     // Offers section cards
     if (section) {
-        var cardsHtml = '';
+        var cardsHtml = '<div class="offers-section-title">🔥 العروض الحالية</div>';
         for (i = 0; i < activeDeals.length; i += 1) {
             var d = activeDeals[i];
             var details = '';
@@ -610,25 +611,22 @@ function openOfferModal(index) {
     }
     document.getElementById('offerModalDetails').innerHTML = detailsHtml;
 
-    // Build selections (user picks which items they want)
+    // Build selections (user picks which items they want, duplicates allowed)
     var selectionsHtml = '';
     var selectableItems = getOfferSelectableItems(deal);
-    if (selectableItems.length > 1) {
+    offerSelectedPicks = [];
+    if (selectableItems.length > 0) {
         var maxPicks = getOfferMaxPicks(deal);
-        selectionsHtml += '<div style="margin-bottom:8px;display:flex;align-items:center;gap:12px;"><strong>اختر ' + maxPicks + ' أصناف:</strong>';
-        if (selectableItems.length <= maxPicks) {
-            selectionsHtml += '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.85rem;color:var(--accent);"><input type="checkbox" onchange="selectAllOfferItems(this,' + maxPicks + ')" style="accent-color:var(--accent);"> تحديد الكل</label>';
-        }
-        selectionsHtml += '</div>';
+        selectionsHtml += '<div style="margin-bottom:8px;"><strong>اختر ' + maxPicks + ' ساندويش:</strong> <span id="offerPicksCount" style="color:var(--accent);font-size:0.85rem;">(0/' + maxPicks + ')</span></div>';
         selectionsHtml += '<div class="offer-selections-grid">';
         var i;
         for (i = 0; i < selectableItems.length; i += 1) {
-            selectionsHtml += '<label class="offer-select-item">';
-            selectionsHtml += '<input type="checkbox" value="' + selectableItems[i].id + '" onchange="validateOfferSelections(' + maxPicks + ')">';
-            selectionsHtml += '<span>' + escapeHtml(selectableItems[i].name) + '</span>';
-            selectionsHtml += '</label>';
+            selectionsHtml += '<div class="offer-select-btn" onclick="addOfferPick(' + selectableItems[i].id + ',' + maxPicks + ')">';
+            selectionsHtml += '<span>+ ' + escapeHtml(selectableItems[i].name) + '</span>';
+            selectionsHtml += '</div>';
         }
         selectionsHtml += '</div>';
+        selectionsHtml += '<div id="offerPicksList" class="offer-picks-list"></div>';
     }
     document.getElementById('offerModalSelections').innerHTML = selectionsHtml;
 
@@ -639,13 +637,24 @@ function getOfferSelectableItems(deal) {
     var items = [];
     var i;
     var swType = deal.sandwichType || 'any';
-    if (deal.type === 'combo' && deal.combo && deal.combo.sandwiches) {
+    if (deal.type === 'combo' && deal.combo) {
         var comboSwType = deal.combo.sandwichType || '';
-        for (i = 0; i < deal.combo.sandwiches.length; i += 1) {
-            var p = findProductById(products, deal.combo.sandwiches[i]);
-            if (p) {
-                if (comboSwType && p.sandwichType !== comboSwType) continue;
-                items.push(p);
+        var comboSandwiches = deal.combo.sandwiches || [];
+        if (comboSandwiches.length > 0) {
+            for (i = 0; i < comboSandwiches.length; i += 1) {
+                var p = findProductById(products, comboSandwiches[i]);
+                if (p) {
+                    if (comboSwType && p.sandwichType !== comboSwType) continue;
+                    items.push(p);
+                }
+            }
+        } else if (comboSwType) {
+            for (i = 0; i < products.length; i += 1) {
+                if (products[i].sandwichType === comboSwType) items.push(products[i]);
+            }
+        } else {
+            for (i = 0; i < products.length; i += 1) {
+                if (products[i].category === 'burgers' || products[i].category === 'chicken') items.push(products[i]);
             }
         }
     } else if (deal.type === 'specific' && deal.items) {
@@ -679,42 +688,44 @@ function getOfferMaxPicks(deal) {
     return deal.qty || 2;
 }
 
-function validateOfferSelections(max) {
-    var container = document.getElementById('offerModalSelections');
-    if (!container) return;
-    var grid = container.querySelector('.offer-selections-grid');
-    if (!grid) return;
-    var checked = grid.querySelectorAll('input[type=checkbox]:checked');
-    var unchecked = grid.querySelectorAll('input[type=checkbox]:not(:checked)');
-    var i;
-    if (checked.length >= max) {
-        for (i = 0; i < unchecked.length; i += 1) unchecked[i].disabled = true;
-    } else {
-        var all = grid.querySelectorAll('input[type=checkbox]');
-        for (i = 0; i < all.length; i += 1) all[i].disabled = false;
-    }
+function addOfferPick(productId, maxPicks) {
+    if (offerSelectedPicks.length >= maxPicks) return;
+    offerSelectedPicks.push(productId);
+    renderOfferPicks(maxPicks);
 }
 
-function selectAllOfferItems(masterCheckbox, max) {
-    var container = document.getElementById('offerModalSelections');
-    if (!container) return;
-    var grid = container.querySelector('.offer-selections-grid');
-    if (!grid) return;
-    var all = grid.querySelectorAll('input[type=checkbox]');
+function removeOfferPick(index, maxPicks) {
+    offerSelectedPicks.splice(index, 1);
+    renderOfferPicks(maxPicks);
+}
+
+function renderOfferPicks(maxPicks) {
+    var countEl = document.getElementById('offerPicksCount');
+    var listEl = document.getElementById('offerPicksList');
+    if (countEl) countEl.textContent = '(' + offerSelectedPicks.length + '/' + maxPicks + ')';
+    if (!listEl) return;
+    if (offerSelectedPicks.length === 0) {
+        listEl.innerHTML = '';
+        return;
+    }
+    var html = '<div style="margin-top:10px;font-size:0.85rem;color:var(--text-light);margin-bottom:6px;">الاختيارات:</div>';
     var i;
-    if (masterCheckbox.checked) {
-        for (i = 0; i < all.length && i < max; i += 1) {
-            all[i].checked = true;
-            all[i].disabled = false;
-        }
-        for (; i < all.length; i += 1) {
-            all[i].checked = false;
-            all[i].disabled = true;
-        }
-    } else {
-        for (i = 0; i < all.length; i += 1) {
-            all[i].checked = false;
-            all[i].disabled = false;
+    for (i = 0; i < offerSelectedPicks.length; i += 1) {
+        var p = findProductById(products, offerSelectedPicks[i]);
+        var name = p ? p.name : 'منتج';
+        html += '<div class="offer-pick-item">';
+        html += '<span>' + (i + 1) + '. ' + escapeHtml(name) + '</span>';
+        html += '<button type="button" onclick="removeOfferPick(' + i + ',' + maxPicks + ')" class="offer-pick-remove">&times;</button>';
+        html += '</div>';
+    }
+    listEl.innerHTML = html;
+    // Disable/enable buttons
+    var btns = document.querySelectorAll('.offer-select-btn');
+    for (i = 0; i < btns.length; i += 1) {
+        if (offerSelectedPicks.length >= maxPicks) {
+            btns[i].classList.add('disabled');
+        } else {
+            btns[i].classList.remove('disabled');
         }
     }
 }
@@ -723,6 +734,7 @@ function closeOfferModal(event) {
     if (event && event.target !== event.currentTarget) return;
     document.getElementById('offerModal').style.display = 'none';
     currentOffer = null;
+    offerSelectedPicks = [];
 }
 
 function changeOfferQty(delta) {
@@ -733,19 +745,11 @@ function changeOfferQty(delta) {
 function addOfferToCart() {
     if (!currentOffer) return;
     var deal = currentOffer;
-    var selectedItems = [];
-    var container = document.getElementById('offerModalSelections');
-    if (container) {
-        var checked = container.querySelectorAll('input[type=checkbox]:checked');
-        var i;
-        for (i = 0; i < checked.length; i += 1) {
-            selectedItems.push(Number(checked[i].value));
-        }
-    }
+    var selectedItems = offerSelectedPicks.slice();
     // Validate selections if there are options
     var selectableItems = getOfferSelectableItems(deal);
     var maxPicks = getOfferMaxPicks(deal);
-    if (selectableItems.length > 1 && selectedItems.length < maxPicks) {
+    if (selectableItems.length > 0 && selectedItems.length < maxPicks) {
         alert('الرجاء اختيار ' + maxPicks + ' أصناف لإكمال العرض.');
         return;
     }
@@ -763,6 +767,7 @@ function addOfferToCart() {
 
     // Build name for display
     var names = [];
+    var i;
     for (i = 0; i < selectedItems.length; i += 1) {
         var p = findProductById(products, selectedItems[i]);
         if (p) names.push(p.name);
