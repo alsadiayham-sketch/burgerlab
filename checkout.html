@@ -143,6 +143,7 @@
                     itemsHtml += '<div class="checkout-item-actions">';
                     itemsHtml += '<div class="qty-selector"><button type="button" onclick="changeOfferQty(' + i + ', -1)">−</button><span>' + cart[i].qty + '</span><button type="button" onclick="changeOfferQty(' + i + ', 1)">+</button></div>';
                     itemsHtml += '<div class="checkout-item-price">' + formatCurrency(offerTotal) + '</div>';
+                    itemsHtml += '<button type="button" class="btn-ghost" onclick="editOfferFromCheckout(' + i + ')">تعديل</button>';
                     itemsHtml += '<button type="button" class="btn-ghost" onclick="removeOfferItem(' + i + ')">حذف</button>';
                     itemsHtml += '</div></div>';
                     continue;
@@ -246,6 +247,12 @@
             cart.splice(index, 1);
             saveCart();
             renderCheckout();
+        }
+
+        function editOfferFromCheckout(index) {
+            // Redirect back to main page with edit param so the offer modal opens
+            localStorage.setItem('burgerlab_edit_offer', index);
+            window.location.href = 'index.html#menu';
         }
 
         function getSubtotal() {

@@ -66,7 +66,18 @@ function subscribeToStoreData() {
         var list = [];
         snapshot.forEach(function (docSnap) { list.push(docSnap.data()); });
         renderOffersBanner(list);
+        checkPendingOfferEdit();
     }, function (err) { console.error('Deals error:', err); });
+}
+
+function checkPendingOfferEdit() {
+    var pending = localStorage.getItem('burgerlab_edit_offer');
+    if (pending === null) return;
+    localStorage.removeItem('burgerlab_edit_offer');
+    var index = parseInt(pending, 10);
+    if (isNaN(index) || index < 0 || index >= cart.length) return;
+    if (!cart[index] || !cart[index].isOffer) return;
+    setTimeout(function () { editOfferInCart(index); }, 300);
 }
 
 function setStoreNotice(message, isWarning) {
@@ -413,6 +424,7 @@ function renderCart() {
             html += '<div class="cart-item-info"><h4>' + escapeHtml(cart[i].offerName || 'عرض') + '</h4><span>' + escapeHtml((cart[i].selectedNames || []).join('، ')) + '</span><div class="cart-item-price">' + formatCurrency(offerTotal) + '</div></div>';
             html += '<div class="cart-item-actions">';
             html += '<div class="qty-selector"><button type="button" onclick="updateOfferQty(' + i + ', -1)">−</button><span>' + cart[i].qty + '</span><button type="button" onclick="updateOfferQty(' + i + ', 1)">+</button></div>';
+            html += '<button type="button" onclick="editOfferInCart(' + i + ')">تعديل</button>';
             html += '<button type="button" onclick="removeOfferFromCart(' + i + ')">حذف</button>';
             html += '</div></div>';
             continue;
@@ -454,6 +466,63 @@ function removeOfferFromCart(index) {
     saveCart();
     renderCart();
     updateCartBadge();
+}
+
+var editingOfferIndex = -1;
+
+function editOfferInCart(index) {
+    var item = cart[index];
+    if (!item || !item.isOffer) return;
+    // Find matching deal in activeOffers
+    var deal = item.deal || null;
+    if (!deal) {
+        var i;
+        for (i = 0; i < activeOffers.length; i += 1) {
+            if (activeOffers[i].name === item.offerName) { deal = activeOffers[i]; break; }
+        }
+    }
+    if (!deal) { alert('العرض غير متاح حالياً'); return; }
+    editingOfferIndex = index;
+    currentOffer = deal;
+    offerQty = item.qty || 1;
+    document.getElementById('offerModalName').textContent = deal.name || '';
+    document.getElementById('offerModalDesc').textContent = deal.description || '';
+    document.getElementById('offerModalPrice').textContent = formatCurrency(deal.price || 0);
+    document.getElementById('offerModalQty').textContent = offerQty;
+
+    // Build details
+    var detailsHtml = '';
+    if (deal.type === 'combo' && deal.combo) {
+        detailsHtml += '<div style="background:rgba(255,255,255,0.04);border-radius:14px;padding:14px;margin-bottom:10px;">';
+        detailsHtml += '<strong style="display:block;margin-bottom:8px;">محتويات العرض:</strong>';
+        if (deal.combo.sandwichQty) detailsHtml += '<div>🍔 ' + deal.combo.sandwichQty + ' ساندويش</div>';
+        if (deal.combo.friesQty) detailsHtml += '<div>🍟 ' + deal.combo.friesQty + ' بطاطا</div>';
+        if (deal.combo.drinksQty) detailsHtml += '<div>🥤 ' + deal.combo.drinksQty + ' مشروب</div>';
+        if (deal.combo.sauces) detailsHtml += '<div>🫙 صوصات</div>';
+        detailsHtml += '</div>';
+    }
+    document.getElementById('offerModalDetails').innerHTML = detailsHtml;
+
+    // Build selections pre-filled
+    var selectableItems = getOfferSelectableItems(deal);
+    offerSelectedPicks = (item.selectedItems || []).slice();
+    var maxPicks = getOfferMaxPicks(deal);
+    var selectionsHtml = '';
+    if (selectableItems.length > 0) {
+        selectionsHtml += '<div style="margin-bottom:8px;"><strong>اختر ' + maxPicks + ' ساندويش:</strong> <span id="offerPicksCount" style="color:var(--accent);font-size:0.85rem;">(' + offerSelectedPicks.length + '/' + maxPicks + ')</span></div>';
+        selectionsHtml += '<div class="offer-selections-grid">';
+        var j;
+        for (j = 0; j < selectableItems.length; j += 1) {
+            selectionsHtml += '<div class="offer-select-btn' + (offerSelectedPicks.length >= maxPicks ? ' disabled' : '') + '" onclick="addOfferPick(' + selectableItems[j].id + ',' + maxPicks + ')">';
+            selectionsHtml += '<span>+ ' + escapeHtml(selectableItems[j].name) + '</span>';
+            selectionsHtml += '</div>';
+        }
+        selectionsHtml += '</div>';
+        selectionsHtml += '<div id="offerPicksList"></div>';
+    }
+    document.getElementById('offerModalSelections').innerHTML = selectionsHtml;
+    renderOfferPicks(maxPicks);
+    document.getElementById('offerModal').style.display = 'flex';
 }
 
 function updateCartQty(productId, sizeIdx, delta) {
@@ -577,6 +646,7 @@ function toggleMobileMenu() {
 function openOfferModal(index) {
     var deal = activeOffers[index];
     if (!deal) return;
+    editingOfferIndex = -1;
     currentOffer = deal;
     offerQty = 1;
     document.getElementById('offerModalName').textContent = deal.name || '';
@@ -735,6 +805,7 @@ function closeOfferModal(event) {
     document.getElementById('offerModal').style.display = 'none';
     currentOffer = null;
     offerSelectedPicks = [];
+    editingOfferIndex = -1;
 }
 
 function changeOfferQty(delta) {
@@ -774,10 +845,15 @@ function addOfferToCart() {
     }
     offerItem.selectedNames = names;
 
-    cart.push(offerItem);
+    if (editingOfferIndex >= 0) {
+        cart[editingOfferIndex] = offerItem;
+        editingOfferIndex = -1;
+    } else {
+        cart.push(offerItem);
+    }
     saveCart();
     renderCart();
     updateCartBadge();
     closeOfferModal();
-    toggleCart();
+    if (editingOfferIndex < 0) toggleCart();
 }
