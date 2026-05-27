@@ -284,7 +284,7 @@
                                             <option value="double">دبل</option>
                                         </select>
                                     </div>
-                                    <div><label>اختر الأصناف</label><div id="comboSandwiches" class="checkbox-grid scrollable"></div></div>
+                                    <div><label>اختر الأصناف</label><div style="margin-bottom:6px;"><label style="cursor:pointer;font-size:0.85rem;color:var(--accent);display:flex;align-items:center;gap:4px;"><input type="checkbox" id="comboSelectAll" onchange="toggleComboSelectAll(this)" style="accent-color:var(--accent);"> تحديد الكل</label></div><div id="comboSandwiches" class="checkbox-grid scrollable"></div></div>
                                     <div><label>العدد</label><input type="number" id="comboSandwichQty" min="0" value="4" placeholder="4"></div>
                                 </div>
                             </div>
@@ -319,15 +319,6 @@
                             <option value="any">أي حجم</option>
                             <option value="sandwich">ساندويش فقط</option>
                             <option value="meal">وجبة فقط</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>نوع الساندويش المشمول</label>
-                        <select id="dealSandwichType">
-                            <option value="any">الكل (ميني + سنجل + دبل)</option>
-                            <option value="mini">ميني فقط</option>
-                            <option value="single">سنجل فقط</option>
-                            <option value="double">دبل فقط</option>
                         </select>
                     </div>
                     <div style="grid-column: 1 / -1;">

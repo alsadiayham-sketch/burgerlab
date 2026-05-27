@@ -678,6 +678,19 @@ function populateComboSandwiches(selected) {
         html += '<label class="checkbox-item"><input type="checkbox" value="' + products[i].id + '" ' + checked + '><span>' + escapeHtml(products[i].name) + escapeHtml(typeLabel) + '</span></label>';
     }
     container.innerHTML = html || '<span style="color:var(--text-light);">لا توجد أصناف بهذا النوع.</span>';
+    // Reset select all checkbox
+    var selectAll = document.getElementById('comboSelectAll');
+    if (selectAll) selectAll.checked = false;
+}
+
+function toggleComboSelectAll(masterCheckbox) {
+    var container = document.getElementById('comboSandwiches');
+    if (!container) return;
+    var boxes = container.querySelectorAll('input[type=checkbox]');
+    var i;
+    for (i = 0; i < boxes.length; i += 1) {
+        boxes[i].checked = masterCheckbox.checked;
+    }
 }
 
 function getSandwichTypeLabel(type) {
@@ -713,7 +726,6 @@ function openDealModal(dealDocId) {
     document.getElementById('dealPrice').value = deal ? deal.price : '';
     document.getElementById('dealQty').value = deal ? (deal.qty || 2) : 2;
     document.getElementById('dealSizeType').value = deal ? (deal.sizeType || 'any') : 'any';
-    document.getElementById('dealSandwichType').value = deal ? (deal.sandwichType || 'any') : 'any';
     document.getElementById('dealDescription').value = deal ? (deal.description || '') : '';
     document.getElementById('dealActive').value = deal ? (deal.active || 'active') : 'active';
     // Dates — default start date to today
@@ -749,7 +761,7 @@ function saveDeal(event) {
         price: Number(document.getElementById('dealPrice').value) || 0,
         qty: Number(document.getElementById('dealQty').value) || 2,
         sizeType: document.getElementById('dealSizeType').value,
-        sandwichType: document.getElementById('dealSandwichType').value || 'any',
+        sandwichType: type === 'combo' ? (document.getElementById('comboSandwichType').value || '') : 'any',
         description: document.getElementById('dealDescription').value.trim(),
         active: document.getElementById('dealActive').value,
         startDate: document.getElementById('dealStartDate').value || '',
