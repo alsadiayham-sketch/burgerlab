@@ -172,6 +172,10 @@ function normalizeCartItems(cartItems, productsList) {
     var i;
     for (i = 0; i < safeItems.length; i += 1) {
         var item = safeItems[i];
+        if (item.isOffer) {
+            result.push(item);
+            continue;
+        }
         var product = findProductById(productsList, item.id || item.productId);
         var maxSizeIndex = product && product.sizes && product.sizes.length ? product.sizes.length - 1 : 0;
         var sizeIdx = parseInt(item.sizeIdx, 10);
