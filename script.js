@@ -66,18 +66,7 @@ function subscribeToStoreData() {
         var list = [];
         snapshot.forEach(function (docSnap) { list.push(docSnap.data()); });
         renderOffersBanner(list);
-        checkPendingOfferEdit();
     }, function (err) { console.error('Deals error:', err); });
-}
-
-function checkPendingOfferEdit() {
-    var pending = localStorage.getItem('burgerlab_edit_offer');
-    if (pending === null) return;
-    localStorage.removeItem('burgerlab_edit_offer');
-    var index = parseInt(pending, 10);
-    if (isNaN(index) || index < 0 || index >= cart.length) return;
-    if (!cart[index] || !cart[index].isOffer) return;
-    setTimeout(function () { editOfferInCart(index); }, 300);
 }
 
 function setStoreNotice(message, isWarning) {
@@ -473,6 +462,11 @@ var editingOfferIndex = -1;
 function editOfferInCart(index) {
     var item = cart[index];
     if (!item || !item.isOffer) return;
+    // Close cart sidebar
+    var sidebar = document.getElementById('cartSidebar');
+    var overlay = document.getElementById('cartOverlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
     // Find matching deal in activeOffers
     var deal = item.deal || null;
     if (!deal) {
