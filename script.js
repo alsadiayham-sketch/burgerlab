@@ -469,8 +469,9 @@ function editOfferInCart(index) {
     // Close cart sidebar
     var sidebar = document.getElementById('cartSidebar');
     var overlay = document.getElementById('cartOverlay');
-    if (sidebar) sidebar.classList.remove('open');
+    if (sidebar) sidebar.classList.remove('active');
     if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
     // Find matching deal in activeOffers
     var deal = item.deal || null;
     if (!deal) {
