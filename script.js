@@ -108,7 +108,11 @@ function renderOffersBanner(dealsList) {
         var deal = dealsList[i];
         if (deal.active !== 'active' && deal.active !== true) continue;
         if (deal.startDate && new Date(deal.startDate) > now) continue;
-        if (deal.endDate && new Date(deal.endDate) < now) continue;
+        if (deal.endDate) {
+            var endOfDay = new Date(deal.endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (endOfDay < now) continue;
+        }
         activeDeals.push(deal);
     }
     activeOffers = activeDeals;
