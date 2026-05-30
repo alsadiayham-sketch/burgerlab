@@ -301,6 +301,19 @@ function openProductModal(productId) {
     document.getElementById('productImage').value = product ? product.image : '';
     document.getElementById('productStatus').value = product ? product.status : 'normal';
     document.getElementById('productSandwichType').value = product ? (product.sandwichType || '') : '';
+    // Image preview
+    var previewDiv = document.getElementById('productImagePreview');
+    var fileInput = document.getElementById('productImageFile');
+    if (fileInput) fileInput.value = '';
+    if (previewDiv) {
+        var imgSrc = product ? product.image : '';
+        if (imgSrc && imgSrc !== FALLBACK_IMAGE) {
+            previewDiv.style.display = 'block';
+            previewDiv.querySelector('img').src = imgSrc;
+        } else {
+            previewDiv.style.display = 'none';
+        }
+    }
     populateCategorySelect();
     document.getElementById('productCategory').value = product ? product.category : MENU_CATEGORIES[0];
     var container = document.getElementById('sizesContainer');
@@ -344,13 +357,22 @@ function saveProduct(event) {
         var i;
         for (i = 0; i < products.length; i += 1) nextId = Math.max(nextId, Number(products[i].id) + 1);
     }
+    var imageValue = document.getElementById('productImage').value.trim() || FALLBACK_IMAGE;
+    // If a file was uploaded and converted to base64, use that
+    var previewDiv = document.getElementById('productImagePreview');
+    if (previewDiv && previewDiv.style.display !== 'none') {
+        var previewImg = previewDiv.querySelector('img');
+        if (previewImg && previewImg.src && previewImg.src.indexOf('data:image') === 0) {
+            imageValue = previewImg.src;
+        }
+    }
     var productData = normalizeProduct({
         id: nextId,
         name: document.getElementById('productName').value.trim(),
         category: document.getElementById('productCategory').value,
         description: document.getElementById('productDescription').value.trim(),
         sizes: sizes,
-        image: document.getElementById('productImage').value.trim() || FALLBACK_IMAGE,
+        image: imageValue,
         status: document.getElementById('productStatus').value,
         sandwichType: document.getElementById('productSandwichType').value || '',
         brand: ''
@@ -368,6 +390,48 @@ function saveProduct(event) {
         setLoading(false);
         setStatus('تعذر حفظ الصنف.', 'error');
     });
+}
+
+function previewProductImage(input) {
+    var previewDiv = document.getElementById('productImagePreview');
+    if (!previewDiv) return;
+    if (!input.files || !input.files[0]) {
+        previewDiv.style.display = 'none';
+        return;
+    }
+    var file = input.files[0];
+    if (file.size > 800000) {
+        alert('الصورة كبيرة جداً (الحد الأقصى 800KB). اختر صورة أصغر.');
+        input.value = '';
+        previewDiv.style.display = 'none';
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        // Resize to max 400px to keep base64 small
+        var img = new Image();
+        img.onload = function () {
+            var maxSize = 400;
+            var w = img.width;
+            var h = img.height;
+            if (w > maxSize || h > maxSize) {
+                if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+                else { w = Math.round(w * maxSize / h); h = maxSize; }
+            }
+            var canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            var base64 = canvas.toDataURL('image/webp', 0.75);
+            previewDiv.querySelector('img').src = base64;
+            previewDiv.style.display = 'block';
+            // Clear URL field since file takes priority
+            document.getElementById('productImage').value = '';
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 }
 
 function deleteProduct(productId) {

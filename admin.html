@@ -194,8 +194,12 @@
                         <textarea id="productDescription"></textarea>
                     </div>
                     <div>
-                        <label>رابط الصورة</label>
-                        <input type="url" id="productImage" placeholder="https://...">
+                        <label>الصورة</label>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            <input type="file" id="productImageFile" accept="image/*" onchange="previewProductImage(this)">
+                            <input type="url" id="productImage" placeholder="أو أدخل رابط الصورة https://...">
+                            <div id="productImagePreview" style="display:none;margin-top:4px;"><img style="width:80px;height:80px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,0.1);"></div>
+                        </div>
                     </div>
                     <div>
                         <label>الحالة</label>
