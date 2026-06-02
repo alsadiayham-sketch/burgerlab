@@ -301,7 +301,7 @@ function renderMenuItemCard(product) {
         '<p class="item-desc">' + escapeHtml(product.description) + '</p>',
         '<div class="item-size-row">',
         sizeSelectHtml,
-        '<span class="price-note">الوجبة = ساندويش + بطاطا + مشروب</span>',
+        ((product.sizes && product.sizes.some(function(s){ return s.size === 'وجبة'; })) ? '<span class="price-note">الوجبة = ساندويش + بطاطا + مشروب</span>' : ''),
         '</div>',
         '</div>',
         '<div class="item-actions">',
