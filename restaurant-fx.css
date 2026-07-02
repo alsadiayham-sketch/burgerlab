@@ -1,0 +1,281 @@
+/* ============================================================
+   Burger Lab — Restaurant FX layer
+   Interactive backgrounds + UI/transaction polish (additive).
+   Style direction: Vibrant & Block + Motion-Driven, warm ember palette.
+   ============================================================ */
+
+:root {
+    --fx-ember: #ff8c00;
+    --fx-flame: #ff5722;
+    --fx-glow: rgba(255, 140, 0, 0.55);
+    --fx-red: #e63946;
+}
+
+/* ---------- Global animated restaurant background ---------- */
+.resto-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    background:
+        radial-gradient(1200px 700px at 15% -10%, rgba(230, 57, 70, 0.16), transparent 60%),
+        radial-gradient(1000px 600px at 100% 10%, rgba(255, 140, 0, 0.14), transparent 55%);
+}
+.resto-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.5;
+    mix-blend-mode: screen;
+    animation: blobDrift 22s ease-in-out infinite alternate;
+}
+.resto-blob.b1 { width: 460px; height: 460px; top: -80px; right: -60px;
+    background: radial-gradient(circle, var(--fx-flame), transparent 68%); }
+.resto-blob.b2 { width: 520px; height: 520px; bottom: -120px; left: -80px;
+    background: radial-gradient(circle, var(--fx-ember), transparent 68%);
+    animation-duration: 28s; animation-delay: -6s; }
+.resto-blob.b3 { width: 380px; height: 380px; top: 40%; left: 45%;
+    background: radial-gradient(circle, var(--fx-red), transparent 70%);
+    animation-duration: 34s; animation-delay: -12s; opacity: 0.35; }
+
+/* Faint drifting sesame/dot grain */
+.resto-grain {
+    position: absolute;
+    inset: -50%;
+    background-image: radial-gradient(rgba(255, 200, 120, 0.10) 1px, transparent 1.6px);
+    background-size: 46px 46px;
+    animation: grainDrift 40s linear infinite;
+}
+
+@keyframes blobDrift {
+    0%   { transform: translate(0, 0) scale(1); }
+    50%  { transform: translate(40px, -30px) scale(1.12); }
+    100% { transform: translate(-30px, 40px) scale(0.95); }
+}
+@keyframes grainDrift {
+    0%   { transform: translate(0, 0); }
+    100% { transform: translate(46px, 46px); }
+}
+
+/* ---------- Hero interactive layer ---------- */
+.hero { overflow: hidden; }
+.hero-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+/* Cursor-follow ember glow */
+.hero-cursor-glow {
+    position: absolute;
+    width: 340px;
+    height: 340px;
+    border-radius: 50%;
+    left: 0; top: 0;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, var(--fx-glow), transparent 65%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 0;
+    pointer-events: none;
+    mix-blend-mode: screen;
+}
+.hero:hover .hero-cursor-glow { opacity: 0.9; }
+.hero-content { z-index: 2 !important; }
+.hero-overlay { z-index: 0; }
+
+/* Rising steam wisps in hero */
+.hero-steam {
+    position: absolute;
+    bottom: -40px;
+    width: 60px;
+    height: 180px;
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.14), transparent 70%);
+    filter: blur(10px);
+    border-radius: 50%;
+    animation: steamRise 7s ease-in infinite;
+    z-index: 0;
+    pointer-events: none;
+}
+.hero-steam.s1 { left: 18%; animation-delay: 0s; }
+.hero-steam.s2 { left: 46%; animation-delay: 2.4s; }
+.hero-steam.s3 { left: 74%; animation-delay: 4.1s; }
+@keyframes steamRise {
+    0%   { transform: translateY(0) scaleX(1); opacity: 0; }
+    20%  { opacity: 0.7; }
+    100% { transform: translateY(-320px) scaleX(1.8); opacity: 0; }
+}
+
+/* Animated flame underline on the hero badge */
+.hero-badge {
+    position: relative;
+    background: linear-gradient(135deg, rgba(255, 140, 0, 0.18), rgba(230, 57, 70, 0.18)) !important;
+    border-color: rgba(255, 140, 0, 0.35) !important;
+    box-shadow: 0 0 22px rgba(255, 140, 0, 0.25);
+    animation: badgePulse 3.4s ease-in-out infinite;
+}
+@keyframes badgePulse {
+    0%, 100% { box-shadow: 0 0 18px rgba(255, 140, 0, 0.18); }
+    50%      { box-shadow: 0 0 30px rgba(255, 140, 0, 0.4); }
+}
+
+/* ---------- Button shine ---------- */
+.btn-primary { position: relative; overflow: hidden; }
+.btn-primary::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -120%;
+    width: 60%; height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    transform: skewX(-20deg);
+    transition: none;
+}
+.btn-primary:hover::after { animation: btnShine 0.85s ease; }
+@keyframes btnShine {
+    0%   { left: -120%; }
+    100% { left: 130%; }
+}
+
+/* ---------- Menu card polish ---------- */
+.menu-item-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.28s cubic-bezier(.2,.8,.2,1), border-color 0.28s ease, box-shadow 0.28s ease;
+}
+.menu-item-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 140, 0, 0.14), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+.menu-item-card:hover {
+    transform: translateY(-5px) scale(1.008);
+    border-color: rgba(255, 140, 0, 0.45) !important;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 140, 0, 0.12);
+}
+.menu-item-card:hover::before { opacity: 1; }
+.item-thumb { overflow: hidden; border-radius: 16px; }
+.item-thumb img { transition: transform 0.45s cubic-bezier(.2,.8,.2,1); }
+.menu-item-card:hover .item-thumb img { transform: scale(1.09) rotate(-1deg); }
+
+/* Menu tab active glow */
+.menu-tab.active {
+    box-shadow: 0 8px 22px rgba(230, 57, 70, 0.35);
+}
+
+/* ---------- Scroll reveal ---------- */
+.fx-reveal {
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(.2,.8,.2,1);
+    will-change: opacity, transform;
+}
+.fx-reveal.in-view { opacity: 1; transform: none; }
+
+/* ---------- Value change bump (cart badge / totals) ---------- */
+.fx-bump { animation: fxBump 0.42s cubic-bezier(.2,.9,.3,1.4); }
+@keyframes fxBump {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.28); color: var(--fx-ember); }
+    100% { transform: scale(1); }
+}
+
+/* ============================================================
+   Transactions / checkout enhancements
+   ============================================================ */
+.checkout-card {
+    position: relative;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.checkout-card:hover { box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4); }
+
+/* Order-mode cards: richer active state + icon */
+.mode-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+}
+.mode-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 140, 0, 0.14), rgba(230, 57, 70, 0.14));
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+.mode-card:hover { transform: translateY(-3px); }
+.mode-card.active {
+    border-color: var(--fx-ember) !important;
+    box-shadow: 0 10px 26px rgba(255, 140, 0, 0.28);
+}
+.mode-card.active::before { opacity: 1; }
+.mode-card > * { position: relative; z-index: 1; }
+
+/* Summary rows: clearer hierarchy + animated total */
+.summary-row { transition: color 0.2s ease; }
+.summary-row.total {
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.16);
+    font-size: 1.15rem;
+}
+.summary-row.total strong {
+    background: linear-gradient(135deg, var(--fx-ember), var(--fx-red));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.35rem;
+}
+
+/* Order progress strip on checkout */
+.fx-steps {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 22px;
+    flex-wrap: wrap;
+}
+.fx-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+.fx-step .fx-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--fx-ember), var(--fx-red));
+    color: #fff;
+    font-size: 0.78rem;
+}
+.fx-step.done { color: var(--white); border-color: rgba(255, 140, 0, 0.4); }
+.fx-step-divider { flex: 1; height: 2px; min-width: 16px;
+    background: linear-gradient(90deg, rgba(255,140,0,0.4), rgba(255,255,255,0.06)); border-radius: 2px; }
+
+/* Sticky summary on wide screens */
+@media (min-width: 900px) {
+    .checkout-shell .checkout-card:last-child {
+        position: sticky;
+        top: 96px;
+    }
+}
+
+/* ---------- Accessibility: respect reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .resto-blob, .resto-grain, .hero-steam, .hero-badge,
+    .btn-primary::after, .fx-bump, .hero-particles { animation: none !important; }
+    .fx-reveal { opacity: 1; transform: none; transition: none; }
+}
