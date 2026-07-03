@@ -209,10 +209,12 @@ function renderStorefront() {
 }
 
 function applySettings() {
+    var heroTitle = document.getElementById('heroTitle');
     var heroSubtitle = document.getElementById('heroSubtitle');
     var aboutText = document.getElementById('aboutText');
     var instagramLink = document.getElementById('instagramLink');
     var whatsappLink = document.getElementById('whatsappLink');
+    if (heroTitle && siteSettings.heroTitle) heroTitle.textContent = siteSettings.heroTitle;
     if (heroSubtitle) heroSubtitle.textContent = siteSettings.heroSubtitle;
     if (aboutText) aboutText.innerHTML = escapeHtml(siteSettings.aboutText).replace(/\n/g, '<br>');
     if (instagramLink) instagramLink.href = siteSettings.instagramLink;

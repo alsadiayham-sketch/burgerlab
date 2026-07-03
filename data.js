@@ -4,6 +4,7 @@ var DEFAULT_DISCOUNTS = [];
 
 var DEFAULT_SITE_SETTINGS = {
     whatsappNumber: '972569236758',
+    heroTitle: 'أقوى برجر بالبلد',
     heroSubtitle: 'أطعم برجر بالبلد',
     aboutText: 'برجر لاب يقدّم برجر لحم ودجاج بطعم قوي ومكونات طازجة يومياً.\n\nنحضّر الساندويشات والوجبات بسرعة، ونهتم بالتفاصيل من أول قضمة لآخر صوص.\n\nلطلبات داخل المطعم أو سفري، إحنا جاهزين.',
     instagramLink: 'https://www.instagram.com/burger._.lab/',
@@ -99,6 +100,7 @@ function normalizeSettings(settings) {
     var source = settings || {};
     return {
         whatsappNumber: extractWhatsappNumber(source.whatsappNumber || source.whatsappLink || DEFAULT_SITE_SETTINGS.whatsappNumber),
+        heroTitle: String(source.heroTitle || DEFAULT_SITE_SETTINGS.heroTitle),
         heroSubtitle: String(source.heroSubtitle || DEFAULT_SITE_SETTINGS.heroSubtitle),
         aboutText: String(source.aboutText || DEFAULT_SITE_SETTINGS.aboutText),
         instagramLink: String(source.instagramLink || DEFAULT_SITE_SETTINGS.instagramLink),

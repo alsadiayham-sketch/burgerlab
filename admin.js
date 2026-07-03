@@ -529,6 +529,7 @@ function updateOrderStatus(orderId, nextStatus) {
 
 function loadSettingsForm() {
     document.getElementById('settingWhatsapp').value = siteSettings.whatsappNumber || '';
+    document.getElementById('settingHeroTitle').value = siteSettings.heroTitle || '';
     document.getElementById('settingHero').value = siteSettings.heroSubtitle || '';
     document.getElementById('settingInstagram').value = siteSettings.instagramLink || '';
     document.getElementById('settingAbout').value = siteSettings.aboutText || '';
@@ -538,6 +539,7 @@ function saveSettings(event) {
     event.preventDefault();
     var next = normalizeSettings({
         whatsappNumber: document.getElementById('settingWhatsapp').value,
+        heroTitle: document.getElementById('settingHeroTitle').value,
         heroSubtitle: document.getElementById('settingHero').value,
         instagramLink: document.getElementById('settingInstagram').value,
         aboutText: document.getElementById('settingAbout').value
