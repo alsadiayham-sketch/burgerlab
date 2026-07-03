@@ -60,6 +60,18 @@
 
 /* ---------- Hero interactive layer ---------- */
 .hero { overflow: hidden; }
+
+/* Aurora WebGL layer (react-bits port) — glow only, text stays readable */
+.aurora-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.65;
+    mix-blend-mode: screen;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+}
 .hero-particles {
     position: absolute;
     inset: 0;
