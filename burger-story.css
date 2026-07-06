@@ -59,7 +59,7 @@
     object-position: center 42%;
     filter: saturate(1.06) contrast(1.04) brightness(.92);
     will-change: transform;
-    background: #0b0604;
+    background: #0b0604 url("grill-poster.jpg") center 42% / cover no-repeat;
 }
 
 /* dark scrim for text legibility (opacity driven by JS with the copy) */

@@ -1,11 +1,13 @@
 /* =========================================================================
-   Burger Lab - Cinematic scroll-scrubbed video intro engine
-   Maps the intro section's own scroll to a real grill clip's currentTime
-   (the meat cooks as you scroll) and drives a 3D camera for drama:
-     0.00-0.10  intro  : brand copy over the grill, camera pushed in low
-     0.10-0.86  cook   : copy fades, camera drifts / punches in while it cooks
-     0.86-1.00  ready  : camera settles, brand + CTA fade back in -> menu
-   Self-guarding, rAF-throttled, reduced-motion aware.
+   Burger Lab - Cinematic scroll-scrubbed intro engine (frame-on-canvas)
+   Instead of seeking a <video> (unreliable across browsers), the grill clip
+   is pre-extracted into a numbered image sequence and the matching frame is
+   drawn to a <canvas> as the user scrolls. This works identically in Chrome,
+   Edge, Firefox, Safari and on mobile, and needs no HTTP Range support.
+   A 3D camera (CSS transform on the wrapper) adds push-in / drift drama.
+     0.00-0.10  intro : brand copy over the grill, camera pushed in
+     0.10-0.86  cook  : copy fades, camera drifts while the frames advance
+     0.86-1.00  ready : camera settles, brand + CTA fade back in -> menu
    ========================================================================= */
 (function () {
     "use strict";
@@ -13,7 +15,7 @@
     var section = document.querySelector(".burger-intro");
     if (!section) return;
     var camera  = section.querySelector(".bi-camera");
-    var video   = section.querySelector(".bi-video");
+    var canvas  = section.querySelector(".bi-video");
     var glow    = section.querySelector(".bi-glow");
     var embers  = section.querySelector(".bi-embers");
     var scrim   = section.querySelector(".bi-scrim");
@@ -21,10 +23,24 @@
     var cue     = section.querySelector(".bi-cue");
     var caption = section.querySelector(".bi-caption");
     var capSpan = caption ? caption.querySelector("span") : null;
-    if (!camera || !video) return;
+    if (!camera || !canvas || !canvas.getContext) return;
 
+    var ctx = canvas.getContext("2d");
     var reduce = window.matchMedia &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* ---- frame sequence ---- */
+    var FRAME_COUNT = 143;            /* files: frames/f_001.jpg .. f_143.jpg */
+    var FRAME_DIR = "frames/";
+    function frameName(i) {
+        var n = String(i + 1);
+        while (n.length < 3) n = "0" + n;
+        return FRAME_DIR + "f_" + n + ".jpg";
+    }
+    var imgs = new Array(FRAME_COUNT);
+    var ready = new Array(FRAME_COUNT);
+    var loadedCount = 0;
+    var lastDrawn = -1;
 
     /* ---- helpers ---- */
     function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
@@ -32,9 +48,22 @@
     function lerp(a, b, t) { return a + (b - a) * t; }
     function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
 
-    /* ---- camera keyframes: {p, s(scale), x/y(% translate), rx/ry/rz(deg)} ----
-       Rotations are kept modest; the video is over-scanned in CSS so tilts and
-       pans never reveal the backdrop. */
+    function drawFrame(i) {
+        i = Math.max(0, Math.min(FRAME_COUNT - 1, i));
+        /* fall back to the nearest already-loaded frame while loading */
+        if (!ready[i]) {
+            var j = i;
+            while (j >= 0 && !ready[j]) j--;
+            if (j < 0) { j = i; while (j < FRAME_COUNT && !ready[j]) j++; }
+            if (j < 0 || j >= FRAME_COUNT || !ready[j]) return;
+            i = j;
+        }
+        if (i === lastDrawn) return;
+        lastDrawn = i;
+        ctx.drawImage(imgs[i], 0, 0, canvas.width, canvas.height);
+    }
+
+    /* ---- camera keyframes: {p, s(scale), x/y(% translate), rx/ry/rz(deg)} ---- */
     var CAM = [
         { p: 0.00, s: 1.16, x: 0,  y: 3,  rx: 6,  ry: -3, rz: -1 },
         { p: 0.10, s: 1.20, x: 1,  y: 3,  rx: 6,  ry: 2,  rz: 1  },
@@ -71,37 +100,6 @@
         else caption.style.opacity = "0";
     }
 
-    /* ---- video scrubbing ---- */
-    var duration = 0, canSeek = false, lastT = -1;
-    function onMeta() {
-        duration = (video.duration && isFinite(video.duration)) ? video.duration : 14.28;
-        canSeek = true;
-        render(progress());
-    }
-    video.addEventListener("loadedmetadata", onMeta);
-    if (video.readyState >= 1) onMeta();
-
-    /* iOS/Safari won't paint a scrubbed <video> until it has played once;
-       do a silent play->pause on the first user interaction to "wake" it. */
-    var woke = false;
-    function wake() {
-        if (woke) return;
-        woke = true;
-        try {
-            var pr = video.play();
-            if (pr && pr.then) pr.then(function () { video.pause(); }).catch(function () {});
-            else video.pause();
-        } catch (e) {}
-    }
-
-    function scrub(p) {
-        if (!canSeek || !duration) return;
-        var t = clamp01(p) * (duration - 0.06);
-        if (Math.abs(t - lastT) < 0.02) return;
-        lastT = t;
-        try { video.currentTime = t; } catch (e) {}
-    }
-
     /* ---- the frame ---- */
     function render(p) {
         var c = camAt(p);
@@ -110,14 +108,13 @@
             c.s.toFixed(3) + ") rotateX(" + c.rx.toFixed(2) + "deg) rotateY(" +
             c.ry.toFixed(2) + "deg) rotateZ(" + c.rz.toFixed(2) + "deg)";
 
-        scrub(p);
+        drawFrame(Math.round(clamp01(p) * (FRAME_COUNT - 1)));
 
         /* warmth */
         if (glow)   glow.style.opacity   = (0.35 + 0.35 * Math.sin(clamp01(p) * Math.PI)).toFixed(3);
         if (embers) embers.style.opacity = (0.85 * (1 - seg(p, 0.86, 1.0))).toFixed(3);
 
-        /* brand copy book-ends the story: shown at start, fades while it cooks,
-           fades back in with the CTA at the end */
+        /* brand copy book-ends the story */
         var vis = Math.max(1 - seg(p, 0.10, 0.22), seg(p, 0.86, 0.97));
         if (copy) {
             copy.style.opacity = vis.toFixed(3);
@@ -144,18 +141,42 @@
     }
     var ticking = false;
     function onScroll() {
-        wake();
         if (ticking) return;
         ticking = true;
         window.requestAnimationFrame(function () { render(progress()); ticking = false; });
     }
 
-    if (reduce) { return; }   /* static poster hero (no .js-on) */
+    /* ---- preload the sequence ---- */
+    function preload() {
+        for (var i = 0; i < FRAME_COUNT; i++) {
+            (function (idx) {
+                var im = new Image();
+                im.decoding = "async";
+                im.onload = function () {
+                    ready[idx] = true;
+                    loadedCount++;
+                    /* keep the visible frame fresh as images arrive */
+                    var want = Math.round(clamp01(progress()) * (FRAME_COUNT - 1));
+                    if (idx === want || lastDrawn < 0) { lastDrawn = -1; render(progress()); }
+                };
+                im.src = frameName(idx);
+                imgs[idx] = im;
+            })(i);
+        }
+    }
+
+    if (reduce) {                     /* static hero on a mid frame */
+        preload();
+        var first = new Image();
+        first.onload = function () { ctx.drawImage(first, 0, 0, canvas.width, canvas.height); };
+        first.src = frameName(Math.round(FRAME_COUNT * 0.45));
+        return;
+    }
 
     section.classList.add("js-on");
+    preload();
     render(progress());
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", function () { render(progress()); });
     window.addEventListener("load", function () { render(progress()); });
-    window.addEventListener("pointerdown", wake, { passive: true });
 })();
