@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="restaurant-fx.css">
+    <link rel="stylesheet" href="burger-story.css">
     <link rel="icon" href="logo.png">
 </head>
 <body>
@@ -49,23 +50,34 @@
         <a href="#contact" onclick="toggleMobileMenu()">تواصل معنا</a>
     </div>
 
-    <header class="hero" id="home">
-        <div class="hero-overlay"></div>
-        <div class="container hero-content">
-            <div class="hero-badge">Burger Lab • Fresh Smash Taste</div>
-            <h1 id="heroTitle">أقوى برجر بالبلد</h1>
-            <p class="hero-subtitle" id="heroSubtitle">أطعم برجر بالبلد</p>
-            <div class="hero-actions">
-                <a href="#menu" class="btn-primary">شوف القائمة</a>
-                <a href="#contact" class="btn-secondary">تواصل معنا</a>
+    <section class="burger-intro" id="home" aria-label="مقدمة برجر لاب">
+        <div class="bi-sticky">
+            <div class="bi-bg" aria-hidden="true"></div>
+            <div class="bi-glow" aria-hidden="true"></div>
+            <div class="bi-camera" id="biCamera" aria-hidden="true">
+                <video class="bi-video" id="biVideo" playsinline muted preload="auto"
+                       poster="grill-poster.jpg">
+                    <source src="grill.mp4" type="video/mp4">
+                </video>
             </div>
-            <div class="hero-highlights">
-                <div class="highlight-chip">🔥 لحم طازج يومياً</div>
-                <div class="highlight-chip">🍟 وجبات كاملة</div>
-                <div class="highlight-chip">🥤 سفري أو داخل المطعم</div>
+            <div class="bi-scrim" id="biScrim" aria-hidden="true"></div>
+            <div class="bi-vignette" aria-hidden="true"></div>
+            <div class="bi-embers" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
             </div>
+            <div class="bi-copy" id="biCopy">
+                <span class="hero-badge">Burger Lab • Fresh Smash Taste</span>
+                <h1 id="heroTitle">أقوى برجر بالبلد</h1>
+                <p class="hero-subtitle" id="heroSubtitle">أطعم برجر بالبلد</p>
+                <div class="hero-actions">
+                    <a href="#menu" class="btn-primary">شوف القائمة</a>
+                    <a href="#contact" class="btn-secondary">تواصل معنا</a>
+                </div>
+                <div class="bi-cue" id="biCue"><span>مرّر للأسفل لتشوف كيف بنعمله</span><i>↓</i></div>
+            </div>
+            <div class="bi-caption" id="biCaption" aria-hidden="true"><span></span></div>
         </div>
-    </header>
+    </section>
 
     <main>
         <section class="menu-section-shell" id="menu">
@@ -217,5 +229,6 @@
     <script src="script.js"></script>
     <script src="aurora-bg.js"></script>
     <script src="restaurant-fx.js"></script>
+    <script src="burger-story.js"></script>
 </body>
 </html>
